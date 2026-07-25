@@ -1,0 +1,2101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowOps AI — Planificación inteligente de servicios técnicos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy-950:#0a0f1e;
+  --navy-900:#0f172a;
+  --navy-800:#161f36;
+  --navy-700:#1e2a47;
+  --slate-200:#e2e8f0;
+  --slate-400:#94a3b8;
+  --slate-500:#64748b;
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --border:#e6e8f0;
+  --ink:#0f172a;
+  --ink-soft:#4b5468;
+  --cyan:#06b6d4;
+  --cyan-dark:#0891b2;
+  --violet:#7c5cff;
+  --green:#0fa968;
+  --amber:#e8a13a;
+  --red:#e5484d;
+  --shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.12);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+button{font-family:inherit;cursor:pointer;}
+::selection{background:rgba(124,92,255,.25);}
+
+/* ---------- Login ---------- */
+#loginScreen{
+  position:fixed;inset:0;
+  background:radial-gradient(1200px 600px at 15% -10%, #1c2a4d 0%, var(--navy-950) 55%), var(--navy-950);
+  display:flex;align-items:center;justify-content:center;
+  z-index:500;
+}
+.login-card{
+  width:400px;max-width:92vw;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  padding:36px 32px;
+  backdrop-filter:blur(20px);
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.6);
+}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:26px;}
+.logo-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--violet));display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-mark svg{width:18px;height:18px;}
+.login-logo .name{color:#fff;font-weight:700;font-size:19px;letter-spacing:-.02em;}
+.login-logo .name span{color:var(--cyan);}
+.login-card h1{color:#fff;font-size:22px;margin:0 0 4px;letter-spacing:-.02em;}
+.login-card p.sub{color:var(--slate-400);font-size:13.5px;margin:0 0 26px;line-height:1.5;}
+.field{margin-bottom:14px;}
+.field label{display:block;color:var(--slate-400);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.field select,.field input{
+  width:100%;padding:11px 12px;border-radius:10px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  color:#fff;font-size:14px;outline:none;
+}
+.field select:focus,.field input:focus{border-color:var(--cyan);}
+.field select option{background:#0f172a;}
+.btn-primary{
+  width:100%;padding:12px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--cyan),var(--cyan-dark));
+  color:#fff;font-weight:600;font-size:14.5px;margin-top:6px;
+  box-shadow:0 8px 20px -6px rgba(6,182,212,.5);
+}
+.btn-primary:hover{filter:brightness(1.08);}
+.login-note{margin-top:18px;font-size:11.5px;color:var(--slate-500);line-height:1.6;border-top:1px solid rgba(255,255,255,.08);padding-top:14px;}
+
+/* ---------- App shell ---------- */
+#app{display:none;height:100vh;}
+.shell{display:flex;height:100vh;overflow:hidden;}
+.sidebar{
+  width:236px;flex-shrink:0;background:var(--navy-900);
+  display:flex;flex-direction:column;padding:20px 14px;
+  border-right:1px solid var(--navy-800);
+}
+.sb-logo{display:flex;align-items:center;gap:9px;padding:4px 8px 22px;}
+.sb-logo .name{color:#fff;font-weight:700;font-size:16.5px;letter-spacing:-.02em;}
+.sb-logo .name span{color:var(--cyan);}
+.nav-group-label{color:var(--slate-500);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:14px 10px 6px;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;
+  color:var(--slate-400);font-size:13.5px;font-weight:500;margin-bottom:2px;
+  border:none;background:transparent;width:100%;text-align:left;
+}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.85;}
+.nav-item:hover{background:var(--navy-800);color:var(--slate-200);}
+.nav-item.active{background:var(--navy-800);color:#fff;}
+.nav-item.active svg{opacity:1;color:var(--cyan);}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;}
+.sb-footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--navy-800);}
+.sb-user{display:flex;align-items:center;gap:9px;padding:8px;border-radius:10px;}
+.avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+.sb-user .who{min-width:0;}
+.sb-user .who .n{color:#fff;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-user .who .r{color:var(--slate-500);font-size:11px;}
+.logout-btn{background:none;border:none;color:var(--slate-500);margin-left:auto;padding:4px;border-radius:6px;}
+.logout-btn:hover{color:#fff;background:var(--navy-800);}
+
+.main{flex:1;overflow-y:auto;position:relative;}
+.topbar{
+  position:sticky;top:0;z-index:20;background:rgba(246,247,251,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:16px 28px;display:flex;align-items:center;justify-content:space-between;
+}
+.topbar h2{margin:0;font-size:19px;letter-spacing:-.02em;}
+.topbar .sub{color:var(--ink-soft);font-size:12.5px;margin-top:2px;}
+.company-switch{
+  display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
+  padding:7px 12px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:var(--shadow);
+}
+.company-switch select{border:none;background:none;font-weight:600;font-size:13px;color:var(--ink);outline:none;}
+.view{padding:24px 28px 60px;display:none;}
+.view.active{display:block;}
+
+/* ---------- cards / grid ---------- */
+.grid{display:grid;gap:14px;}
+.grid-cards{grid-template-columns:repeat(5,1fr);}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);}
+.stat-card .icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.stat-card .icon svg{width:16px;height:16px;}
+.stat-card .val{font-family:'Space Grotesk',sans-serif;font-size:25px;font-weight:700;letter-spacing:-.02em;line-height:1;}
+.stat-card .lbl{color:var(--ink-soft);font-size:12px;margin-top:6px;font-weight:500;}
+.stat-card .delta{font-size:11px;font-weight:700;margin-top:4px;}
+.delta.up{color:var(--green);}
+.delta.down{color:var(--red);}
+
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px;}
+.section-title h3{margin:0;font-size:15px;letter-spacing:-.01em;}
+.section-title .hint{color:var(--slate-500);font-size:12px;}
+
+.charts-row{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;}
+.chart-card canvas{max-height:230px;}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;}
+.pill.urgente{background:#fde8e8;color:var(--red);}
+.pill.alta{background:#fff1de;color:#b06a12;}
+.pill.media{background:#eaf1ff;color:#3457c9;}
+.pill.baja{background:#eef1f6;color:var(--ink-soft);}
+.pill.pendiente{background:#f1eefc;color:var(--violet);}
+.pill.asignado{background:#e6f6ff;color:var(--cyan-dark);}
+.pill.en_curso{background:#fff6df;color:#a3760a;}
+.pill.completado{background:#e6f8ef;color:var(--green);}
+.pill.disponible{background:#e6f8ef;color:var(--green);}
+.pill.trabajando{background:#fff6df;color:#a3760a;}
+.pill.descanso{background:#eef1f6;color:var(--ink-soft);}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+/* ---------- Buttons ---------- */
+.btn{padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:#fff;font-size:13px;font-weight:600;color:var(--ink);display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{background:#f5f6fa;}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+.btn.primary:hover{background:#1e293b;}
+.btn.accent{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#fff;border:none;box-shadow:0 6px 16px -6px rgba(124,92,255,.5);}
+.btn.accent:hover{filter:brightness(1.06);}
+.btn.danger{color:var(--red);border-color:#f7d3d4;}
+.btn.danger:hover{background:#fef2f2;}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:7px;}
+.btn svg{width:14px;height:14px;}
+
+/* ---------- Tables ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--slate-500);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:9px 12px;border-bottom:1px solid var(--border);}
+td{padding:11px 12px;border-bottom:1px solid #f0f1f6;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+.table-wrap{overflow-x:auto;}
+.empty-state{padding:40px 20px;text-align:center;color:var(--slate-500);font-size:13px;}
+
+/* ---------- Modal ---------- */
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(2px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-backdrop.open{display:flex;}
+.modal{background:#fff;border-radius:16px;width:560px;max-width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 40px 100px -20px rgba(0,0,0,.35);}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:2;}
+.modal-head h3{margin:0;font-size:16px;}
+.modal-close{border:none;background:#f1f2f6;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);}
+.modal-body{padding:20px 22px;}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:#fff;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-row.full{grid-template-columns:1fr;}
+.form-field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;}
+.form-field input,.form-field select,.form-field textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:13.5px;font-family:inherit;outline:none;background:#fbfbfd;
+}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--cyan);background:#fff;}
+.form-field textarea{resize:vertical;min-height:60px;}
+
+/* ---------- Map ---------- */
+.map-wrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:#0f172a;}
+#mapCanvas{display:block;width:100%;height:420px;}
+.map-legend{position:absolute;top:12px;left:12px;background:rgba(15,23,42,.75);backdrop-filter:blur(6px);border-radius:10px;padding:10px 12px;font-size:11.5px;color:#e2e8f0;display:flex;flex-direction:column;gap:6px;}
+.map-legend .row{display:flex;align-items:center;gap:7px;}
+.map-legend .sw{width:9px;height:9px;border-radius:50%;}
+.map-note{position:absolute;bottom:10px;right:12px;background:rgba(15,23,42,.75);color:var(--slate-400);font-size:10.5px;padding:6px 10px;border-radius:8px;max-width:230px;line-height:1.4;}
+
+/* ---------- AI panel ---------- */
+.ai-banner{
+  background:linear-gradient(120deg,#151b33,#1f2650 60%,#173047);
+  border-radius:16px;padding:20px 22px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden;
+}
+.ai-banner::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(6,182,212,.35),transparent 70%);}
+.ai-banner h3{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:8px;}
+.ai-banner p{margin:0;color:var(--slate-400);font-size:13px;max-width:520px;line-height:1.5;}
+.ai-banner .actions{margin-top:14px;display:flex;gap:10px;position:relative;z-index:1;}
+
+.reason-list{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.reason-item{display:flex;gap:10px;align-items:flex-start;background:#fafbff;border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:12.5px;}
+.reason-item .rt{color:var(--slate-500);font-family:'JetBrains Mono',monospace;font-size:10.5px;white-space:nowrap;padding-top:1px;}
+
+/* ---------- Calendar ---------- */
+.cal-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow-x:auto;}
+.cal-header{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--border);}
+.cal-hours{display:grid;grid-auto-flow:column;grid-auto-columns:70px;}
+.cal-hours div{padding:8px 0;text-align:center;font-size:10.5px;color:var(--slate-500);font-weight:600;border-left:1px solid #f2f3f8;}
+.cal-row{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid #f2f3f8;min-height:56px;}
+.cal-tech{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12.5px;font-weight:600;}
+.cal-track{position:relative;background-image:linear-gradient(to right, #f2f3f8 1px, transparent 1px);background-size:70px 100%;}
+.cal-block{
+  position:absolute;top:6px;bottom:6px;border-radius:8px;padding:5px 8px;font-size:11px;color:#fff;
+  overflow:hidden;cursor:grab;display:flex;flex-direction:column;justify-content:center;box-shadow:0 3px 8px -2px rgba(0,0,0,.25);
+}
+.cal-block b{font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-block span{opacity:.85;font-size:10px;}
+.cal-block.dragging{opacity:.4;}
+.cal-track.dragover{background-color:#eefaff;}
+
+/* ---------- Kanban / job cards for tech app ---------- */
+.tech-job-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);}
+.tech-job-card .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.tech-job-card h4{margin:0;font-size:14.5px;}
+.tech-job-card .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.tech-job-card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid #f0f1f6;}
+
+/* ---------- Chat ---------- */
+.chat-fab{position:fixed;right:26px;bottom:26px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--violet));border:none;box-shadow:0 12px 30px -8px rgba(124,92,255,.6);display:flex;align-items:center;justify-content:center;z-index:150;}
+.chat-fab svg{width:22px;height:22px;color:#fff;}
+.chat-panel{position:fixed;right:26px;bottom:92px;width:370px;max-width:90vw;height:520px;max-height:70vh;background:#fff;border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden;z-index:150;border:1px solid var(--border);}
+.chat-panel.open{display:flex;}
+.chat-head{background:var(--navy-900);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:9px;}
+.chat-head .t{font-weight:700;font-size:13.5px;}
+.chat-head .s{font-size:11px;color:var(--slate-400);}
+.chat-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f9fafc;}
+.msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.5;}
+.msg.user{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:3px;}
+.msg.ai{align-self:flex-start;background:#fff;border:1px solid var(--border);border-bottom-left-radius:3px;}
+.msg.ai.loading{color:var(--slate-500);font-style:italic;}
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;}
+.chip{background:#f1f2f9;border:1px solid var(--border);font-size:11px;padding:5px 9px;border-radius:20px;color:var(--ink-soft);font-weight:600;}
+.chat-input{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border);}
+.chat-input input{flex:1;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;outline:none;}
+.chat-input button{width:36px;height:36px;border-radius:10px;border:none;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-input button svg{width:15px;height:15px;}
+
+/* ---------- Toast ---------- */
+#toastHost{position:fixed;top:18px;right:18px;z-index:400;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--navy-900);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;box-shadow:0 10px 30px -8px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px;min-width:220px;animation:slidein .25s ease;}
+.toast.ok{border-left:3px solid var(--green);}
+.toast.warn{border-left:3px solid var(--amber);}
+.toast.info{border-left:3px solid var(--cyan);}
+@keyframes slidein{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* ---------- misc ---------- */
+.two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+.badge-count{background:var(--navy-900);color:#fff;font-size:10.5px;padding:2px 7px;border-radius:20px;font-weight:700;}
+.progress-bar{height:6px;background:#eef0f6;border-radius:10px;overflow:hidden;margin-top:6px;}
+.progress-bar > div{height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));}
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.filter-bar select,.filter-bar input[type=text]{padding:8px 11px;border:1px solid var(--border);border-radius:9px;font-size:12.5px;background:#fff;}
+.empty-hero{text-align:center;padding:60px 20px;color:var(--slate-500);}
+.empty-hero svg{width:44px;height:44px;color:var(--slate-400);margin-bottom:10px;}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;}
+.small-muted{color:var(--slate-500);font-size:11.5px;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.role-gate{padding:60px 20px;text-align:center;color:var(--slate-500);}
+@media (max-width:1100px){.grid-cards{grid-template-columns:repeat(3,1fr);}.charts-row{grid-template-columns:1fr;}.two-col{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen">
+  <div class="login-card" id="connectCard" style="display:none;">
+    <div class="login-logo">
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-7 4 14 2-7h6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="name">Flow<span>Ops</span> AI</div>
+    </div>
+    <h1>Conectar con el servidor</h1>
+    <p class="sub">Introduce la URL del backend de tu empresa (la que te dio tu proveedor de hosting al desplegarlo, ej. Railway o Render). Solo hace falta hacerlo una vez en este navegador.</p>
+    <div class="field">
+      <label>URL del backend</label>
+      <input id="apiUrlInput" type="text" placeholder="https://flowops-tuempresa.up.railway.app" onkeydown="if(event.key==='Enter')saveApiUrl();">
+    </div>
+    <button class="btn-primary" onclick="saveApiUrl()">Guardar y continuar</button>
+    <div id="connectError" style="color:#f7a3a6;font-size:12.5px;margin-top:10px;"></div>
+    <div class="login-note">¿Aún no lo has desplegado? Sigue las instrucciones del README que viene con el backend (<span class="mono">flowops-backend.zip</span>) — tarda unos minutos y solo se hace una vez.</div>
+  </div>
+
+  <div class="login-card" id="loginCard" style="display:none;">
+    <div class="login-logo">
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-7 4 14 2-7h6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="name">Flow<span>Ops</span> AI</div>
+    </div>
+    <h1>Acceder a la plataforma</h1>
+    <p class="sub">Entra con tu correo y contraseña. Los usuarios los crea el gerente o el administrador desde el Panel admin.</p>
+    <div class="field">
+      <label>Correo</label>
+      <input id="loginEmail" type="text" placeholder="gerente@tuempresa.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin();">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <div id="loginError" style="color:#f7a3a6;font-size:12.5px;margin-top:10px;"></div>
+    <div class="login-note">Conectado a: <span id="connectedUrlLabel" class="mono"></span><br><a href="#" onclick="showConnectScreen();return false;" style="color:#67e8f9;">Cambiar servidor</a> · <a href="#" onclick="showPricingScreen();return false;" style="color:#67e8f9;">Ver planes y precios</a></div>
+  </div>
+
+  <div class="login-card" id="pricingCard" style="display:none;width:820px;max-width:94vw;">
+    <div class="login-logo">
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-7 4 14 2-7h6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="name">Flow<span>Ops</span> AI</div>
+    </div>
+    <h1>Planes y precios</h1>
+    <p class="sub">Elige el plan según el tamaño de tu equipo. Sin permanencia, cambia de plan cuando quieras.</p>
+    <div id="pricingGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0;"></div>
+    <div style="text-align:center;">
+      <a href="#" onclick="showLoginScreen();return false;" style="color:#67e8f9;font-size:13px;">← Volver al login</a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-7 4 14 2-7h6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="name">Flow<span>Ops</span> AI</div>
+    </div>
+
+    <div class="nav-group-label">General</div>
+    <button class="nav-item tecnico-hide" data-view="dashboard" onclick="go('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item tecnico-hide" data-view="pedidos" onclick="go('pedidos')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v4H4zM4 12h16M4 12l1.5 8h13L20 12"/></svg>
+      Pedidos <span class="nav-badge" id="navBadgePendientes" style="display:none;"></span>
+    </button>
+    <button class="nav-item tecnico-hide" data-view="planificacion" onclick="go('planificacion')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Planificación IA
+    </button>
+    <button class="nav-item tecnico-hide" data-view="mapa" onclick="go('mapa')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5-2V6l5 2 6-2 5 2v12l-5-2-6 2z"/><path d="M9 8v12M15 6v12"/></svg>
+      Mapa & rutas
+    </button>
+    <button class="nav-item tecnico-hide" data-view="calendario" onclick="go('calendario')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      Calendario
+    </button>
+
+    <div class="nav-group-label">Conexión</div>
+    <button class="nav-item tecnico-hide" data-view="integraciones" onclick="go('integraciones')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+      Integraciones
+    </button>
+
+    <div class="nav-group-label">Operación</div>
+    <button class="nav-item" data-view="tecnico" onclick="go('tecnico')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12a4 4 0 100-8 4 4 0 000 8z"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+      App Técnico
+    </button>
+    <button class="nav-item tecnico-hide" data-view="clientes" onclick="go('clientes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.4A8.5 8.5 0 013 12a8.5 8.5 0 0116.9-1.5z"/><path d="M8 10h8M8 14h5"/></svg>
+      Clientes
+    </button>
+    <button class="nav-item tecnico-hide" data-view="presupuestos" onclick="go('presupuestos')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>
+      Presupuestos
+    </button>
+    <button class="nav-item tecnico-hide" data-view="estadisticas" onclick="go('estadisticas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+      Estadísticas
+    </button>
+
+    <div class="nav-group-label" id="adminGroupLabel">Administración</div>
+    <button class="nav-item" data-view="resumen" onclick="go('resumen')" id="resumenNavBtn" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Resumen (todas las empresas)
+    </button>
+    <button class="nav-item" data-view="admin" onclick="go('admin')" id="adminNavBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Panel admin
+    </button>
+    <button class="nav-item" data-view="facturacion" onclick="go('facturacion')" id="facturacionNavBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+      Facturación
+    </button>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="avatar" id="sbAvatar" style="background:#7c5cff;">G</div>
+        <div class="who">
+          <div class="n" id="sbUserName">Gerente</div>
+          <div class="r" id="sbUserRole">Gerente · Demo</div>
+        </div>
+        <button class="logout-btn" onclick="openAccountModal()" title="Mi cuenta">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82 2 2 0 11-2.83 2.83 1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51 2 2 0 11-4 0 1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33 2 2 0 11-2.83-2.83 1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1 2 2 0 110-4 1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82 2 2 0 112.83-2.83 1.65 1.65 0 001.82.33 1.65 1.65 0 001-1.51 2 2 0 114 0 1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33 2 2 0 112.83 2.83 1.65 1.65 0 00-.33 1.82 1.65 1.65 0 001.51 1 2 2 0 110 4 1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
+        <button class="logout-btn" onclick="doLogout()" title="Cerrar sesión">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="topTitle">Dashboard</h2>
+        <div class="sub" id="topSub">Vista general del día de hoy</div>
+      </div>
+      <div class="company-switch" id="companySwitchWrap" style="display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/></svg>
+        <select id="companySwitch" onchange="switchCompany(this.value)"></select>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="view" id="view-dashboard">
+      <div class="grid grid-cards" id="statCards"></div>
+      <div class="charts-row">
+        <div class="card chart-card">
+          <div class="section-title" style="margin-top:0;"><h3>Trabajos completados — últimos 7 días</h3></div>
+          <canvas id="chartWeek"></canvas>
+        </div>
+        <div class="card chart-card">
+          <div class="section-title" style="margin-top:0;"><h3>Estado de la jornada</h3></div>
+          <canvas id="chartStatus"></canvas>
+        </div>
+      </div>
+      <div class="section-title"><h3>Urgencias activas</h3><span class="hint">Se reasignan automáticamente al crearse</span></div>
+      <div class="table-card"><div class="table-wrap"><table id="urgentTable"></table></div></div>
+    </div>
+
+    <!-- PEDIDOS -->
+    <div class="view" id="view-pedidos">
+      <div class="filter-bar">
+        <button class="btn accent" onclick="openJobModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+          Nuevo pedido
+        </button>
+        <button class="btn" onclick="document.getElementById('csvInput').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Importar CSV
+        </button>
+        <input type="file" id="csvInput" accept=".csv" style="display:none;" onchange="handleCsvImport(this.files[0])">
+        <select id="filterEstado" onchange="renderPedidos()">
+          <option value="">Todos los estados</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="asignado">Asignado</option>
+          <option value="en_curso">En curso</option>
+          <option value="completado">Completado</option>
+        </select>
+        <select id="filterPrioridad" onchange="renderPedidos()">
+          <option value="">Toda prioridad</option>
+          <option value="urgente">Urgente</option>
+          <option value="alta">Alta</option>
+          <option value="media">Media</option>
+          <option value="baja">Baja</option>
+        </select>
+        <input type="text" id="filterSearch" placeholder="Buscar cliente o dirección…" oninput="renderPedidos()">
+      </div>
+      <div class="table-card"><div class="table-wrap"><table id="pedidosTable"></table></div></div>
+    </div>
+
+    <!-- PLANIFICACION IA -->
+    <div class="view" id="view-planificacion">
+      <div class="ai-banner">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>
+          Motor de planificación
+        </h3>
+        <p>Analiza especialidad, ubicación, disponibilidad, prioridad y carga de trabajo de cada técnico para asignar y ordenar la jornada minimizando kilómetros y huecos muertos.</p>
+        <div class="actions">
+          <button class="btn accent" onclick="runAIPlanning()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>
+            Organizar jornada con IA
+          </button>
+          <button class="btn" style="background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.18);" onclick="simulateUrgency()">
+            + Simular urgencia entrante
+          </button>
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="section-title" style="margin-top:0;"><h3>Últimas decisiones de la IA</h3><span class="hint" id="aiRunTime">—</span></div>
+          <div class="reason-list" id="aiReasonList"></div>
+        </div>
+        <div>
+          <div class="section-title" style="margin-top:0;"><h3>Carga por técnico</h3></div>
+          <div id="techLoadList" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAPA -->
+    <div class="view" id="view-mapa">
+      <div class="filter-bar">
+        <span class="small-muted">Mapa simulado de la ciudad (prototipo). En producción se sustituye por Google Maps / OpenStreetMap con tráfico en tiempo real.</span>
+      </div>
+      <div class="map-wrap">
+        <canvas id="mapCanvas"></canvas>
+        <div class="map-legend">
+          <div class="row"><div class="sw" style="background:#0fa968;"></div>Técnico disponible</div>
+          <div class="row"><div class="sw" style="background:#e8a13a;"></div>Técnico trabajando</div>
+          <div class="row"><div class="sw" style="background:#e5484d;"></div>Trabajo urgente</div>
+          <div class="row"><div class="sw" style="background:#06b6d4;"></div>Trabajo pendiente</div>
+        </div>
+        <div class="map-note">Las líneas muestran la ruta optimizada de cada técnico para hoy, en el orden calculado por la IA.</div>
+      </div>
+    </div>
+
+    <!-- CALENDARIO -->
+    <div class="view" id="view-calendario">
+      <div class="filter-bar"><span class="small-muted">Arrastra un trabajo a otra franja o técnico — la IA recalculará automáticamente el resto de la planificación de ambos.</span></div>
+      <div class="cal-wrap">
+        <div class="cal-header">
+          <div></div>
+          <div class="cal-hours" id="calHours"></div>
+        </div>
+        <div id="calBody"></div>
+      </div>
+    </div>
+
+    <!-- INTEGRACIONES -->
+    <div class="view" id="view-integraciones">
+      <div class="ai-banner">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          Cómo conectar pedidos de clientes reales
+        </h3>
+        <p>Ya tienes un backend real conectado. El siguiente paso, que no depende de este archivo, es que un desarrollador conecte cada canal (WhatsApp Business API, formulario web, CRM) al endpoint de abajo usando la clave de tu empresa.</p>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="section-title" style="margin-top:0;"><h3>1 · Formato de pedido (contrato de datos)</h3></div>
+          <div class="card mono" style="font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-x:auto;">{
+  "cliente": "Restaurante El Roble",
+  "telefono": "600111222",
+  "direccion": "Calle Mayor 12, Madrid",
+  "tipo": "Climatización",
+  "prioridad": "urgente",
+  "duracion": 60,
+  "horario": "09:00",
+  "material": "Gas refrigerante",
+  "observaciones": "Avería en sala principal"
+}</div>
+          <div class="small-muted" style="margin-top:8px;">
+            <b>tipo</b>: Climatización · Electricidad · Fontanería · Placas solares · Telecomunicaciones · Reformas · Mantenimiento industrial.<br>
+            <b>prioridad</b>: urgente · alta · media · baja. <b>duracion</b> en minutos. Se puede enviar un pedido o una lista de pedidos.
+          </div>
+
+          <div class="section-title"><h3>2 · Endpoint real de tu backend</h3></div>
+          <div class="card mono" style="font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-x:auto;">POST &lt;URL de tu backend&gt;/v1/pedidos
+X-API-Key: &lt;clave de tu empresa, abajo&gt;
+Content-Type: application/json
+
+{ ... mismo JSON de arriba ... }</div>
+          <div class="small-muted" style="margin-top:8px;">Este es el endpoint real y ya activo de tu backend. Cualquier sistema (WhatsApp Business API, un formulario web, email parseado, un CRM) puede llamarlo directamente con la clave de tu empresa — no necesita usuario ni contraseña del panel.</div>
+
+          <div class="section-title"><h3>Clave de API de tu empresa</h3></div>
+          <div id="apiKeyBox"><div class="small-muted">Cargando…</div></div>
+        </div>
+
+        <div>
+          <div class="section-title" style="margin-top:0;"><h3>3 · Probar la ingesta ahora mismo</h3><span class="hint">Llama al endpoint real con tu sesión actual</span></div>
+          <div class="card">
+            <div class="form-field"><label>Pega aquí el JSON de un pedido (o una lista de pedidos)</label>
+              <textarea id="webhookPayload" style="min-height:180px;font-family:'JetBrains Mono',monospace;font-size:12px;" placeholder='{"cliente":"...", "direccion":"...", "tipo":"Electricidad", "prioridad":"alta", ...}'></textarea>
+            </div>
+            <button class="btn accent" style="margin-top:6px;" onclick="processWebhookPayload()">Procesar como pedido entrante</button>
+            <div id="webhookResult" class="small-muted" style="margin-top:10px;"></div>
+          </div>
+          <div class="section-title"><h3>4 · Qué falta para producción real</h3></div>
+          <div id="prodChecklist" class="card"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP TECNICO -->
+    <div class="view" id="view-tecnico">
+      <div id="techAppGate"></div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="view" id="view-clientes">
+      <div class="section-title" style="margin-top:0;"><h3>Registro de comunicaciones automáticas</h3><span class="hint">Simulado — listo para conectar WhatsApp / email</span></div>
+      <div class="table-card"><div class="table-wrap"><table id="notifTable"></table></div></div>
+    </div>
+
+    <!-- PRESUPUESTOS -->
+    <div class="view" id="view-presupuestos">
+      <div class="filter-bar"><span class="small-muted">Se genera un borrador automáticamente al finalizar cada trabajo, usando material, horas y tipo de servicio.</span></div>
+      <div class="table-card"><div class="table-wrap"><table id="budgetTable"></table></div></div>
+    </div>
+
+    <!-- ESTADISTICAS -->
+    <div class="view" id="view-estadisticas">
+      <div class="grid grid-cards" id="statCards2"></div>
+      <div class="charts-row">
+        <div class="card chart-card"><div class="section-title" style="margin-top:0;"><h3>Evolución semanal de trabajos</h3></div><canvas id="chartEvoWeek"></canvas></div>
+        <div class="card chart-card"><div class="section-title" style="margin-top:0;"><h3>Técnicos más eficientes</h3></div><canvas id="chartEff"></canvas></div>
+      </div>
+      <div class="charts-row">
+        <div class="card chart-card"><div class="section-title" style="margin-top:0;"><h3>Evolución mensual (trabajos/día)</h3></div><canvas id="chartEvoMonth"></canvas></div>
+        <div class="card chart-card"><div class="section-title" style="margin-top:0;"><h3>Trabajos por tipo de servicio</h3></div><canvas id="chartByType"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="view" id="view-admin">
+      <div id="adminGate"></div>
+    </div>
+
+    <!-- RESUMEN (solo admin) -->
+    <div class="view" id="view-resumen">
+      <div id="resumenGate"></div>
+    </div>
+
+    <!-- FACTURACIÓN -->
+    <div class="view" id="view-facturacion">
+      <div id="facturacionGate"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ============ MODAL: nuevo/editar pedido ============ -->
+<div class="modal-backdrop" id="jobModalBackdrop">
+  <div class="modal">
+    <div class="modal-head"><h3 id="jobModalTitle">Nuevo pedido</h3><button class="modal-close" onclick="closeModal('jobModalBackdrop')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="jobId">
+      <div class="form-row">
+        <div class="form-field"><label>Cliente</label><input id="jobCliente" placeholder="Nombre del cliente"></div>
+        <div class="form-field"><label>Teléfono</label><input id="jobTelefono" placeholder="600 000 000"></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-field"><label>Dirección</label><input id="jobDireccion" placeholder="Calle, número, ciudad"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Tipo de trabajo</label>
+          <select id="jobTipo">
+            <option>Climatización</option><option>Electricidad</option><option>Fontanería</option>
+            <option>Placas solares</option><option>Telecomunicaciones</option><option>Reformas</option><option>Mantenimiento industrial</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Prioridad</label>
+          <select id="jobPrioridad"><option value="baja">Baja</option><option value="media" selected>Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Duración estimada (min)</label><input id="jobDuracion" type="number" value="60" min="15" step="15"></div>
+        <div class="form-field"><label>Horario disponible desde</label><input id="jobHorario" type="time" value="09:00"></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-field"><label>Material necesario</label><input id="jobMaterial" placeholder="Ej: compresor, cableado, válvulas…"></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-field"><label>Observaciones</label><textarea id="jobObs" placeholder="Notas para el técnico…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('jobModalBackdrop')">Cancelar</button>
+      <button class="btn primary" onclick="saveJob()">Guardar pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: admin (empresa/usuario/tecnico) ============ -->
+<div class="modal-backdrop" id="adminModalBackdrop">
+  <div class="modal">
+    <div class="modal-head"><h3 id="adminModalTitle">Nuevo</h3><button class="modal-close" onclick="closeModal('adminModalBackdrop')">✕</button></div>
+    <div class="modal-body" id="adminModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('adminModalBackdrop')">Cancelar</button>
+      <button class="btn primary" id="adminModalSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: mi cuenta / cambiar contraseña ============ -->
+<div class="modal-backdrop" id="accountModalBackdrop">
+  <div class="modal" style="width:420px;">
+    <div class="modal-head"><h3>Mi cuenta</h3><button class="modal-close" onclick="closeModal('accountModalBackdrop')">✕</button></div>
+    <div class="modal-body">
+      <div class="small-muted" style="margin-bottom:14px;">Sesión iniciada como <b id="acctName"></b> (<span id="acctEmail" class="mono"></span>)</div>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Cambiar mi correo</div>
+      <div class="form-row full"><div class="form-field"><label>Nuevo correo</label><input id="acctNewEmail" type="text" placeholder="tunuevo@correo.com"></div></div>
+      <div id="acctEmailMsg" style="font-size:12.5px;margin:4px 0 8px;"></div>
+      <button class="btn sm" onclick="requestEmailChange()">Enviar enlace de confirmación</button>
+      <div class="small-muted" style="margin-top:6px;">Te llegará un enlace a la nueva dirección — el cambio no se aplica hasta que lo confirmes desde ahí.</div>
+      <div class="divider"></div>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Cambiar mi contraseña</div>
+      <div class="form-row full"><div class="form-field"><label>Contraseña actual</label><input id="acctCurrentPass" type="password"></div></div>
+      <div class="form-row full"><div class="form-field"><label>Contraseña nueva (mínimo 6 caracteres)</label><input id="acctNewPass" type="password"></div></div>
+      <div id="acctMsg" style="font-size:12.5px;margin-top:6px;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('accountModalBackdrop')">Cerrar</button>
+      <button class="btn primary" onclick="changeOwnPassword()">Cambiar contraseña</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Chat IA ============ -->
+<button class="chat-fab" onclick="toggleChat()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-1 4 8.5 8.5 0 01-7.5 4.5 8.4 8.4 0 01-4-1L3 20l1.3-3.9a8.38 8.38 0 01-1-4A8.5 8.5 0 0111.5 3a8.38 8.38 0 018.5 8.5z"/></svg>
+</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-head">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>
+    <div><div class="t">Asistente FlowOps</div><div class="s">Responde con los datos reales de tu empresa</div></div>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-suggestions" id="chatSuggestions"></div>
+  <div class="chat-input">
+    <input id="chatInput" type="text" placeholder="Pregunta algo sobre tu jornada…" onkeydown="if(event.key==='Enter')sendChat();">
+    <button onclick="sendChat()"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+  </div>
+</div>
+
+<div id="toastHost"></div>
+
+<script>
+/* =====================================================================
+   FLOWOPS AI — LÓGICA DE APLICACIÓN (conectada a un backend real por API)
+   No hay datos guardados en el navegador salvo la URL del servidor y el
+   token de sesión. Todos los datos de negocio viven en el backend.
+   ===================================================================== */
+
+const SPECIALTIES = ["Climatización","Electricidad","Fontanería","Placas solares","Telecomunicaciones","Reformas","Mantenimiento industrial"];
+const PRIORITY_WEIGHT = {urgente:4, alta:3, media:2, baja:1};
+const WORKDAY_START = 8*60, WORKDAY_END = 19*60; // minutos desde medianoche
+
+let API_BASE = '';
+let authToken = null;
+let currentUser = null;
+let STATE = {companies:[], technicians:[], jobs:[], notifications:[], budgets:[], users:[], currentCompanyId:null};
+let dragJobId = null;
+let charts = {};
+
+/* ---------------------- CLIENTE API ---------------------- */
+async function apiFetch(path, opts={}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  if(authToken) headers['Authorization']='Bearer '+authToken;
+  let res;
+  try{
+    res = await fetch(API_BASE+path, Object.assign({}, opts, {headers}));
+  }catch(e){
+    throw new Error('No se pudo contactar con el servidor ('+API_BASE+'). Comprueba la URL y tu conexión.');
+  }
+  if(res.status===401){
+    toast('Tu sesión ha caducado, vuelve a iniciar sesión','warn');
+    doLogout();
+    throw new Error('Sesión caducada');
+  }
+  if(res.status===204) return null;
+  let data=null;
+  try{ data = await res.json(); }catch(e){ /* sin cuerpo */ }
+  if(!res.ok){ throw new Error((data&&data.error)||('Error '+res.status)); }
+  return data;
+}
+const api = {
+  login:(email,password)=>apiFetch('/v1/auth/login',{method:'POST',body:JSON.stringify({email,password})}),
+  changePassword:(currentPassword,newPassword)=>apiFetch('/v1/auth/change-password',{method:'POST',body:JSON.stringify({currentPassword,newPassword})}),
+  requestEmailChange:(newEmail)=>apiFetch('/v1/auth/email-change/request',{method:'POST',body:JSON.stringify({newEmail})}),
+  confirmEmailChange:(token)=>apiFetch('/v1/auth/email-change/confirm',{method:'POST',body:JSON.stringify({token})}),
+  companies:{
+    list:()=>apiFetch('/v1/empresas'),
+    me:()=>apiFetch('/v1/empresas/me'),
+    create:(data)=>apiFetch('/v1/empresas',{method:'POST',body:JSON.stringify(data)}),
+    remove:(id)=>apiFetch('/v1/empresas/'+id,{method:'DELETE'}),
+    rotateKey:(id)=> id ? apiFetch('/v1/empresas/'+id+'/rotate-key',{method:'POST'}) : apiFetch('/v1/empresas/me/rotate-key',{method:'POST'}),
+  },
+  jobs:{
+    list:(companyId)=>apiFetch('/v1/pedidos'+(companyId?('?companyId='+companyId):'')),
+    create:(payload)=>apiFetch('/v1/pedidos',{method:'POST',body:JSON.stringify(payload)}),
+    update:(id,patch)=>apiFetch('/v1/pedidos/'+id,{method:'PATCH',body:JSON.stringify(patch)}),
+    remove:(id)=>apiFetch('/v1/pedidos/'+id,{method:'DELETE'}),
+  },
+  techs:{
+    list:(companyId)=>apiFetch('/v1/tecnicos'+(companyId?('?companyId='+companyId):'')),
+    create:(data)=>apiFetch('/v1/tecnicos',{method:'POST',body:JSON.stringify(data)}),
+    update:(id,patch)=>apiFetch('/v1/tecnicos/'+id,{method:'PATCH',body:JSON.stringify(patch)}),
+    remove:(id)=>apiFetch('/v1/tecnicos/'+id,{method:'DELETE'}),
+  },
+  users:{
+    list:(companyId)=>apiFetch('/v1/users'+(companyId?('?companyId='+companyId):'')),
+    create:(data)=>apiFetch('/v1/users',{method:'POST',body:JSON.stringify(data)}),
+    update:(id,patch)=>apiFetch('/v1/users/'+id,{method:'PATCH',body:JSON.stringify(patch)}),
+    setPassword:(id,password)=>apiFetch('/v1/users/'+id+'/password',{method:'POST',body:JSON.stringify({password})}),
+    remove:(id)=>apiFetch('/v1/users/'+id,{method:'DELETE'}),
+  },
+  notifications:{
+    list:(companyId)=>apiFetch('/v1/notificaciones'+(companyId?('?companyId='+companyId):'')),
+    create:(data)=>apiFetch('/v1/notificaciones',{method:'POST',body:JSON.stringify(data)}),
+  },
+  budgets:{
+    list:(companyId)=>apiFetch('/v1/presupuestos'+(companyId?('?companyId='+companyId):'')),
+    create:(data)=>apiFetch('/v1/presupuestos',{method:'POST',body:JSON.stringify(data)}),
+  },
+  billing:{
+    plans:()=>apiFetch('/v1/planes',{skipAuth:true}),
+    me:()=>apiFetch('/v1/billing/me'),
+    checkout:(planId)=>apiFetch('/v1/billing/checkout',{method:'POST',body:JSON.stringify({planId})}),
+    portal:()=>apiFetch('/v1/billing/portal',{method:'POST'}),
+    resumen:()=>apiFetch('/v1/billing/resumen'),
+  },
+};
+
+/* ---------------------- CONEXIÓN AL SERVIDOR ---------------------- */
+function normalizeUrl(u){ return u.trim().replace(/\/+$/,''); }
+function showConnectScreen(){
+  document.getElementById('loginCard').style.display='none';
+  document.getElementById('pricingCard').style.display='none';
+  document.getElementById('connectCard').style.display='block';
+  document.getElementById('apiUrlInput').value = API_BASE || '';
+  document.getElementById('connectError').textContent='';
+}
+function showLoginScreen(){
+  document.getElementById('connectCard').style.display='none';
+  document.getElementById('pricingCard').style.display='none';
+  document.getElementById('loginCard').style.display='block';
+  document.getElementById('connectedUrlLabel').textContent = API_BASE;
+  document.getElementById('loginError').textContent='';
+}
+async function showPricingScreen(){
+  document.getElementById('connectCard').style.display='none';
+  document.getElementById('loginCard').style.display='none';
+  document.getElementById('pricingCard').style.display='block';
+  const grid=document.getElementById('pricingGrid');
+  grid.innerHTML='<div class="small-muted">Cargando planes…</div>';
+  try{
+    const res = await fetch(API_BASE+'/v1/planes');
+    const plans = await res.json();
+    grid.innerHTML = plans.map(p=>`
+      <div style="background:rgba(255,255,255,${p.highlighted?'.07':'.03'});border:1px solid ${p.highlighted?'#06b6d4':'rgba(255,255,255,.1)'};border-radius:14px;padding:18px 14px;display:flex;flex-direction:column;">
+        ${p.highlighted?'<div style="color:#06b6d4;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Más popular</div>':''}
+        <div style="color:#fff;font-weight:700;font-size:16px;">${p.name}</div>
+        <div style="margin:8px 0;">${p.contactOnly?'<span style="color:#fff;font-size:20px;font-weight:700;">A medida</span>':`<span style="color:#fff;font-size:26px;font-weight:700;">${p.priceEUR}€</span><span style="color:#94a3b8;font-size:12px;">/mes</span>`}</div>
+        <div style="color:#94a3b8;font-size:11.5px;margin-bottom:10px;line-height:1.5;">${p.description}</div>
+        <ul style="list-style:none;padding:0;margin:0 0 14px;flex:1;">
+          ${p.features.map(f=>`<li style="color:#cbd5e1;font-size:12px;padding:4px 0;display:flex;gap:6px;"><span style="color:#0fa968;">✓</span>${f}</li>`).join('')}
+        </ul>
+        ${p.contactOnly
+          ? `<a href="mailto:ventas@tuempresa.com?subject=FlowOps%20AI%20Enterprise" style="text-align:center;padding:9px;border-radius:9px;background:rgba(255,255,255,.08);color:#fff;font-size:12.5px;font-weight:600;text-decoration:none;">Contactar con ventas</a>`
+          : `<a href="#" onclick="showLoginScreen();return false;" style="text-align:center;padding:9px;border-radius:9px;background:${p.highlighted?'linear-gradient(135deg,#06b6d4,#0891b2)':'rgba(255,255,255,.08)'};color:#fff;font-size:12.5px;font-weight:600;text-decoration:none;">Inicia sesión para contratar</a>`}
+      </div>`).join('');
+  }catch(e){
+    grid.innerHTML = '<div style="color:#f7a3a6;">No se pudieron cargar los planes: '+e.message+'</div>';
+  }
+}
+async function saveApiUrl(){
+  const val = document.getElementById('apiUrlInput').value;
+  const errEl = document.getElementById('connectError');
+  if(!val.trim()){ errEl.textContent='Introduce una URL.'; return; }
+  const url = normalizeUrl(val);
+  errEl.textContent='Comprobando conexión…';
+  try{
+    const res = await fetch(url+'/health');
+    if(!res.ok) throw new Error();
+    API_BASE = url;
+    localStorage.setItem('flowops_api_url', API_BASE);
+    errEl.textContent='';
+    showLoginScreen();
+  }catch(e){
+    errEl.innerHTML = 'No se pudo conectar con esa URL. Comprueba que el backend esté desplegado y accesible, o <a href="#" onclick="forceUseUrl(\''+url.replace(/'/g,"\\'")+'\');return false;" style="color:#67e8f9;">continuar de todas formas</a>.';
+  }
+}
+function forceUseUrl(url){
+  API_BASE = url;
+  localStorage.setItem('flowops_api_url', API_BASE);
+  showLoginScreen();
+}
+
+/* ---------------------- LOGIN / LOGOUT ---------------------- */
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent='';
+  if(!email || !password){ errEl.textContent='Introduce correo y contraseña.'; return; }
+  try{
+    const res = await api.login(email,password);
+    authToken = res.token;
+    currentUser = res.user;
+    localStorage.setItem('flowops_token', authToken);
+    localStorage.setItem('flowops_user', JSON.stringify(currentUser));
+    await afterLogin();
+  }catch(e){
+    errEl.textContent = e.message || 'No se pudo iniciar sesión.';
+  }
+}
+function doLogout(){
+  authToken=null; currentUser=null;
+  localStorage.removeItem('flowops_token');
+  localStorage.removeItem('flowops_user');
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginPassword').value='';
+  showLoginScreen();
+}
+async function afterLogin(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  try{
+    if(currentUser.role==='admin'){
+      STATE.companies = await api.companies.list();
+      STATE.currentCompanyId = STATE.companies[0] ? STATE.companies[0].id : null;
+    } else {
+      const mine = await api.companies.me();
+      STATE.companies = [mine];
+      STATE.currentCompanyId = mine.id;
+    }
+    await fetchCompanyData();
+    initAppUI();
+  }catch(e){
+    toast(e.message||'No se pudieron cargar los datos','warn');
+  }
+}
+async function fetchCompanyData(){
+  const cid = STATE.currentCompanyId;
+  if(!cid){ STATE.technicians=[]; STATE.jobs=[]; STATE.notifications=[]; STATE.budgets=[]; STATE.users=[]; return; }
+  const qId = currentUser.role==='admin' ? cid : undefined;
+  const calls = [
+    api.techs.list(qId), api.jobs.list(qId), api.notifications.list(qId), api.budgets.list(qId)
+  ];
+  if(currentUser.role==='admin' || currentUser.role==='gerente') calls.push(api.users.list(qId));
+  const results = await Promise.all(calls);
+  STATE.technicians = results[0];
+  STATE.jobs = results[1];
+  STATE.notifications = results[2];
+  STATE.budgets = results[3];
+  STATE.users = results[4] || [];
+}
+
+/* ---------------------- HELPERS ---------------------- */
+function co(){ return STATE.companies.find(c=>c.id===STATE.currentCompanyId); }
+function companyJobs(){ return STATE.jobs; } // ya vienen filtrados por el backend
+function companyTechs(){ return STATE.technicians; }
+function jobById(id){ return STATE.jobs.find(j=>j.id===id); }
+function techById(id){ return STATE.technicians.find(t=>t.id===id); }
+function fmtTime(mins){ if(mins==null) return "—"; const h=Math.floor(mins/60), m=mins%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+function timeToMin(t){ if(!t) return WORKDAY_START; const [h,m]=t.split(':').map(Number); return h*60+m; }
+function dist(a,b){ return Math.hypot(a.lat-b.lat, a.lng-b.lng); }
+function initials(name){ return (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function toast(msg,type='ok'){
+  const host=document.getElementById('toastHost');
+  const el=document.createElement('div'); el.className='toast '+type;
+  el.innerHTML=msg;
+  host.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300);},3200);
+}
+async function pushNotification(jobId, kind, message){
+  try{
+    const n = await api.notifications.create({jobId, kind, message});
+    STATE.notifications.unshift(n);
+  }catch(e){ console.error(e); }
+}
+function statusLabel(s){ return {pendiente:'Pendiente',asignado:'Asignado',en_curso:'En curso',completado:'Completado'}[s]||s; }
+function priorityLabel(p){ return {urgente:'Urgente',alta:'Alta',media:'Media',baja:'Baja'}[p]||p; }
+
+/* ---------------------- CUENTA / CONTRASEÑA ---------------------- */
+function openAccountModal(){
+  document.getElementById('acctName').textContent = currentUser.name;
+  document.getElementById('acctEmail').textContent = currentUser.email;
+  document.getElementById('acctNewEmail').value='';
+  document.getElementById('acctEmailMsg').textContent='';
+  document.getElementById('acctCurrentPass').value='';
+  document.getElementById('acctNewPass').value='';
+  document.getElementById('acctMsg').textContent='';
+  openModalEl('accountModalBackdrop');
+}
+async function requestEmailChange(){
+  const newEmail=document.getElementById('acctNewEmail').value.trim();
+  const msg=document.getElementById('acctEmailMsg');
+  if(!newEmail){ msg.style.color='#e5484d'; msg.textContent='Introduce un correo.'; return; }
+  msg.style.color='#64748b'; msg.textContent='Enviando…';
+  try{
+    const res = await api.requestEmailChange(newEmail);
+    msg.style.color='#0fa968'; msg.textContent=res.message||'Enlace enviado. Revisa esa bandeja de entrada.';
+  }catch(e){
+    msg.style.color='#e5484d'; msg.textContent = e.message || 'No se pudo enviar el enlace.';
+  }
+}
+async function changeOwnPassword(){
+  const cur=document.getElementById('acctCurrentPass').value;
+  const nw=document.getElementById('acctNewPass').value;
+  const msg=document.getElementById('acctMsg');
+  if(!cur || !nw){ msg.style.color='#e5484d'; msg.textContent='Rellena ambos campos.'; return; }
+  if(nw.length<6){ msg.style.color='#e5484d'; msg.textContent='La nueva contraseña debe tener al menos 6 caracteres.'; return; }
+  try{
+    await api.changePassword(cur,nw);
+    msg.style.color='#0fa968'; msg.textContent='Contraseña actualizada correctamente.';
+    toast('Contraseña actualizada','ok');
+    setTimeout(()=>closeModal('accountModalBackdrop'),900);
+  }catch(e){
+    msg.style.color='#e5484d'; msg.textContent = e.message || 'No se pudo cambiar la contraseña.';
+  }
+}
+
+/* ---------------------- UI INIT / NAV ---------------------- */
+const VIEW_META = {
+  dashboard:["Dashboard","Vista general del día de hoy"],
+  pedidos:["Pedidos","Gestiona los trabajos entrantes"],
+  planificacion:["Planificación IA","Motor de asignación y optimización"],
+  mapa:["Mapa & rutas","Posición de técnicos y rutas optimizadas"],
+  calendario:["Calendario","Línea temporal de cada técnico"],
+  integraciones:["Integraciones","Cómo conectar los pedidos de clientes reales"],
+  tecnico:["App Técnico","Trabajos asignados para hoy"],
+  clientes:["Clientes","Comunicaciones automáticas enviadas"],
+  presupuestos:["Presupuestos","Borradores generados tras cada servicio"],
+  estadisticas:["Estadísticas","Rendimiento operativo"],
+  admin:["Panel de administración","Empresas, usuarios y técnicos"],
+  resumen:["Resumen","Todas las empresas de un vistazo: técnicos, plan y facturación"],
+  facturacion:["Facturación","Tu plan, tu suscripción y tu método de pago"]
+};
+
+function initAppUI(){
+  const initialsTxt = initials(currentUser.name || 'U');
+  document.getElementById('sbAvatar').textContent = initialsTxt;
+  document.getElementById('sbUserName').textContent = currentUser.name;
+  document.getElementById('sbUserRole').textContent = (currentUser.role==='admin'?'Administrador':currentUser.role==='tecnico'?'Técnico':'Gerente') + ' · ' + (co()?co().name:'FlowOps');
+
+  const csWrap=document.getElementById('companySwitchWrap');
+  if(currentUser.role==='admin'){
+    csWrap.style.display='flex';
+    document.getElementById('companySwitch').innerHTML = STATE.companies.map(c=>`<option value="${c.id}" ${c.id===STATE.currentCompanyId?'selected':''}>${c.name}</option>`).join('');
+  } else { csWrap.style.display='none'; }
+
+  document.getElementById('adminNavBtn').style.display = (currentUser.role==='admin'||currentUser.role==='gerente') ? 'flex' : 'none';
+  document.getElementById('adminGroupLabel').style.display = (currentUser.role==='admin'||currentUser.role==='gerente') ? 'block' : 'none';
+  document.getElementById('resumenNavBtn').style.display = currentUser.role==='admin' ? 'flex' : 'none';
+  document.getElementById('facturacionNavBtn').style.display = currentUser.role==='tecnico' ? 'none' : 'flex';
+  document.querySelectorAll('.tecnico-hide').forEach(b=>{ b.style.display = currentUser.role==='tecnico' ? 'none' : 'flex'; });
+
+  go(currentUser.role==='tecnico' ? 'tecnico' : 'dashboard');
+  initChatSuggestions();
+  renderAll();
+}
+
+async function switchCompany(id){
+  STATE.currentCompanyId = id;
+  try{ await fetchCompanyData(); }catch(e){ toast(e.message,'warn'); }
+  renderAll();
+  document.getElementById('sbUserRole').textContent = 'Administrador · ' + co().name;
+}
+
+function go(view){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  const meta=VIEW_META[view];
+  document.getElementById('topTitle').textContent=meta[0];
+  document.getElementById('topSub').textContent=meta[1];
+  renderView(view);
+}
+function renderView(view){
+  if(view==='dashboard') renderDashboard();
+  else if(view==='pedidos') renderPedidos();
+  else if(view==='planificacion') renderPlanificacion();
+  else if(view==='mapa') renderMap();
+  else if(view==='calendario') renderCalendar();
+  else if(view==='integraciones') renderIntegraciones();
+  else if(view==='tecnico') renderTechApp();
+  else if(view==='clientes') renderClientes();
+  else if(view==='presupuestos') renderBudgets();
+  else if(view==='estadisticas') renderStats();
+  else if(view==='admin') renderAdmin();
+  else if(view==='resumen') renderResumen();
+  else if(view==='facturacion') renderFacturacion();
+}
+function renderAll(){
+  const active=document.querySelector('.nav-item.active');
+  renderView(active?active.dataset.view:'dashboard');
+  document.getElementById('navBadgePendientes').style.display='none';
+  const pend = companyJobs().filter(j=>j.status==='pendiente').length;
+  if(pend>0){ const b=document.getElementById('navBadgePendientes'); b.style.display='inline-flex'; b.textContent=pend; }
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openModalEl(id){ document.getElementById(id).classList.add('open'); }
+
+/* ---------------------- DASHBOARD ---------------------- */
+function renderDashboard(){
+  const jobs=companyJobs();
+  const techs=companyTechs();
+  const today=jobs;
+  const completados=today.filter(j=>j.status==='completado').length;
+  const pendientes=today.filter(j=>j.status==='pendiente').length;
+  const enCurso=today.filter(j=>j.status==='en_curso').length;
+  const trabajando=techs.filter(t=>t.status==='trabajando').length;
+  const disponibles=techs.filter(t=>t.status==='disponible').length;
+  const urgencias=today.filter(j=>j.priority==='urgente' && j.status!=='completado').length;
+  const kmOpt = Math.round(today.filter(j=>j.assignedTechId).length * (3.4 + Math.random()*1.2));
+  const tiempoAhorrado = Math.round(today.filter(j=>j.status!=='pendiente').length * 11 + kmOpt*0.6);
+  const costeAhorrado = Math.round(kmOpt*0.34 + tiempoAhorrado*0.42);
+  const productividad = today.length ? Math.round((completados+enCurso*0.5)/today.length*100) : 0;
+
+  const cards=[
+    ["Trabajos de hoy", today.length, iconCal(), "#3457c9"],
+    ["Completados", completados, iconCheck(), "#0fa968"],
+    ["Pendientes", pendientes, iconClock(), "#7c5cff"],
+    ["Técnicos trabajando", trabajando+" / "+techs.length, iconUser(), "#e8a13a"],
+    ["Técnicos disponibles", disponibles, iconUserCheck(), "#0fa968"],
+    ["Urgencias activas", urgencias, iconBolt(), "#e5484d"],
+    ["Tiempo ahorrado hoy", tiempoAhorrado+" min", iconClock(), "#06b6d4"],
+    ["Km optimizados", kmOpt+" km", iconRoute(), "#3457c9"],
+    ["Coste estimado ahorrado", costeAhorrado+" €", iconCoin(), "#0fa968"],
+    ["Productividad del día", productividad+"%", iconBar(), "#7c5cff"],
+  ];
+  document.getElementById('statCards').innerHTML = cards.map(statCardHTML).join('');
+
+  renderWeekChart('chartWeek', jobs);
+  mkChart('chartStatus','doughnut',{
+    labels:['Pendiente','Asignado','En curso','Completado'],
+    datasets:[{data:[
+      today.filter(j=>j.status==='pendiente').length,
+      today.filter(j=>j.status==='asignado').length,
+      today.filter(j=>j.status==='en_curso').length,
+      today.filter(j=>j.status==='completado').length,
+    ], backgroundColor:['#7c5cff','#06b6d4','#e8a13a','#0fa968'], borderWidth:0}]
+  },{plugins:{legend:{position:'bottom',labels:{boxWidth:9,font:{size:11}}}},cutout:'62%'});
+
+  const urgentJobs = today.filter(j=>j.priority==='urgente' && j.status!=='completado');
+  const tbl=document.getElementById('urgentTable');
+  if(urgentJobs.length===0){
+    tbl.innerHTML = `<tr><td class="empty-state">No hay urgencias activas ahora mismo ✅</td></tr>`;
+  } else {
+    tbl.innerHTML = `<tr><th>Cliente</th><th>Dirección</th><th>Tipo</th><th>Estado</th><th>Técnico</th><th></th></tr>` +
+      urgentJobs.map(j=>{
+        const t=techById(j.assignedTechId);
+        return `<tr><td><b>${j.client}</b></td><td>${j.address}</td><td>${j.type}</td>
+        <td><span class="pill ${j.status}"><span class="dot"></span>${statusLabel(j.status)}</span></td>
+        <td>${t?t.name:'<span class="small-muted">Sin asignar</span>'}</td>
+        <td><button class="btn sm accent" onclick="runAIPlanning()">Reorganizar</button></td></tr>`;
+      }).join('');
+  }
+}
+function statCardHTML([lbl,val,icon,color]){
+  return `<div class="card stat-card">
+    <div class="icon" style="background:${color}1a;color:${color};">${icon}</div>
+    <div class="val">${val}</div>
+    <div class="lbl">${lbl}</div>
+  </div>`;
+}
+function renderWeekChart(canvasId, jobs){
+  const days=[]; const counts=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(Date.now()-i*86400000);
+    const lbl=d.toLocaleDateString('es-ES',{weekday:'short'});
+    days.push(lbl.charAt(0).toUpperCase()+lbl.slice(1,3));
+    counts.push(i===0 ? jobs.filter(j=>j.status==='completado').length : Math.max(1,Math.round(3+Math.random()*7)));
+  }
+  mkChart(canvasId,'bar',{labels:days,datasets:[{label:'Completados',data:counts,backgroundColor:'#7c5cff',borderRadius:6,maxBarThickness:28}]},
+    {plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f0f1f6'}},x:{grid:{display:false}}}});
+}
+
+function iconCal(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`;}
+function iconCheck(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`;}
+function iconClock(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;}
+function iconUser(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12a4 4 0 100-8 4 4 0 000 8z"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>`;}
+function iconUserCheck(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12a4 4 0 100-8 4 4 0 000 8z"/><path d="M2 21c0-4.4 3.6-8 7-8"/><path d="M16 14l2.5 2.5L23 12"/></svg>`;}
+function iconBolt(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 11-13h-7l1-7z"/></svg>`;}
+function iconRoute(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a4 4 0 000-8H9a4 4 0 010-8h7"/></svg>`;}
+function iconCoin(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/></svg>`;}
+function iconBar(){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>`;}
+
+function mkChart(id,type,data,options){
+  const el=document.getElementById(id); if(!el) return;
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(el.getContext('2d'),{type,data,options:Object.assign({responsive:true,maintainAspectRatio:false},options||{})});
+}
+
+/* ---------------------- PEDIDOS ---------------------- */
+function renderPedidos(){
+  const estF=document.getElementById('filterEstado').value;
+  const prioF=document.getElementById('filterPrioridad').value;
+  const searchF=(document.getElementById('filterSearch').value||'').toLowerCase();
+  let jobs=companyJobs().slice().sort((a,b)=>b.createdAt-a.createdAt);
+  if(estF) jobs=jobs.filter(j=>j.status===estF);
+  if(prioF) jobs=jobs.filter(j=>j.priority===prioF);
+  if(searchF) jobs=jobs.filter(j=>j.client.toLowerCase().includes(searchF)||j.address.toLowerCase().includes(searchF));
+
+  const tbl=document.getElementById('pedidosTable');
+  if(jobs.length===0){ tbl.innerHTML=`<tr><td class="empty-state">No hay pedidos que coincidan con el filtro.</td></tr>`; return; }
+  tbl.innerHTML = `<tr><th>Cliente</th><th>Tipo</th><th>Prioridad</th><th>Duración</th><th>Estado</th><th>Técnico</th><th></th></tr>` +
+    jobs.map(j=>{
+      const t=techById(j.assignedTechId);
+      return `<tr>
+        <td><b>${j.client}</b><div class="small-muted">${j.address}</div></td>
+        <td>${j.type}</td>
+        <td><span class="pill ${j.priority}"><span class="dot"></span>${priorityLabel(j.priority)}</span></td>
+        <td>${j.duration} min</td>
+        <td><span class="pill ${j.status}"><span class="dot"></span>${statusLabel(j.status)}</span></td>
+        <td>${t?`<span style="color:${t.color};font-weight:600;">${t.name}</span>`:'<span class="small-muted">—</span>'}</td>
+        <td>
+          <button class="btn sm" onclick="openJobModal('${j.id}')">Editar</button>
+          <button class="btn sm danger" onclick="deleteJob('${j.id}')">Eliminar</button>
+        </td>
+      </tr>`;
+    }).join('');
+}
+function openJobModal(id){
+  document.getElementById('jobModalTitle').textContent = id? 'Editar pedido':'Nuevo pedido';
+  if(id){
+    const j=jobById(id);
+    document.getElementById('jobId').value=j.id;
+    document.getElementById('jobCliente').value=j.client;
+    document.getElementById('jobTelefono').value=j.phone;
+    document.getElementById('jobDireccion').value=j.address;
+    document.getElementById('jobTipo').value=j.type;
+    document.getElementById('jobPrioridad').value=j.priority;
+    document.getElementById('jobDuracion').value=j.duration;
+    document.getElementById('jobHorario').value=j.windowStart;
+    document.getElementById('jobMaterial').value=j.material;
+    document.getElementById('jobObs').value=j.notes;
+  } else {
+    ['jobId','jobCliente','jobTelefono','jobDireccion','jobMaterial','jobObs'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('jobTipo').value='Climatización';
+    document.getElementById('jobPrioridad').value='media';
+    document.getElementById('jobDuracion').value=60;
+    document.getElementById('jobHorario').value='09:00';
+  }
+  openModalEl('jobModalBackdrop');
+}
+async function saveJob(){
+  const id=document.getElementById('jobId').value;
+  const cliente=document.getElementById('jobCliente').value.trim();
+  if(!cliente){ toast('Indica el nombre del cliente','warn'); return; }
+  const raw={
+    cliente,
+    telefono:document.getElementById('jobTelefono').value.trim(),
+    direccion:document.getElementById('jobDireccion').value.trim()||'Dirección sin especificar',
+    tipo:document.getElementById('jobTipo').value,
+    prioridad:document.getElementById('jobPrioridad').value,
+    duracion:parseInt(document.getElementById('jobDuracion').value)||60,
+    horario:document.getElementById('jobHorario').value,
+    material:document.getElementById('jobMaterial').value.trim(),
+    observaciones:document.getElementById('jobObs').value.trim(),
+  };
+  try{
+    if(id){
+      await api.jobs.update(id, {
+        client:raw.cliente, phone:raw.telefono, address:raw.direccion, type:raw.tipo, priority:raw.prioridad,
+        duration:raw.duracion, windowStart:raw.horario, material:raw.material, notes:raw.observaciones
+      });
+      toast('Pedido actualizado','ok');
+    } else {
+      const {created} = await api.jobs.create(raw);
+      if(raw.prioridad==='urgente') toast('Urgencia creada — recuerda reorganizar con la IA','warn');
+      else toast('Pedido creado','ok');
+    }
+    closeModal('jobModalBackdrop');
+    await fetchCompanyData();
+    renderAll();
+  }catch(e){ toast(e.message||'No se pudo guardar el pedido','warn'); }
+}
+async function deleteJob(id){
+  try{
+    await api.jobs.remove(id);
+    STATE.jobs = STATE.jobs.filter(j=>j.id!==id);
+    renderAll();
+    toast('Pedido eliminado','info');
+  }catch(e){ toast(e.message,'warn'); }
+}
+function handleCsvImport(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async (e)=>{
+    const text=e.target.result;
+    const lines=text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2){ toast('CSV vacío o sin filas de datos','warn'); return; }
+    const headers=lines[0].split(',').map(h=>h.trim().toLowerCase());
+    const payload=[];
+    for(let i=1;i<lines.length;i++){
+      const cols=lines[i].split(',');
+      const get=(name)=>{ const idx=headers.indexOf(name); return idx>=0? (cols[idx]||'').trim() : ''; };
+      const cliente=get('cliente')||get('client');
+      if(!cliente) continue;
+      payload.push({
+        cliente, telefono:get('telefono')||get('phone'), direccion:get('direccion')||get('address'),
+        tipo:get('tipo')||get('type'), prioridad:get('prioridad')||get('priority'),
+        duracion:get('duracion')||get('duration'), horario:get('horario')||get('window'),
+        material:get('material'), observaciones:get('observaciones')||get('notes')
+      });
+    }
+    try{
+      const res = await api.jobs.create(payload);
+      toast(`${res.created.length} pedidos importados desde CSV${res.rejected.length?` (${res.rejected.length} descartados)`:''}`,'ok');
+      await fetchCompanyData();
+      renderAll();
+    }catch(e){ toast(e.message||'No se pudo importar el CSV','warn'); }
+    document.getElementById('csvInput').value='';
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------------- MOTOR IA: asignación + rutas ---------------------- */
+function specialtyMatches(techSpecialty, jobType){
+  if(techSpecialty===jobType) return true;
+  const compat = {"Reformas":["Electricidad","Fontanería","Mantenimiento industrial"], "Telecomunicaciones":["Electricidad"]};
+  return (compat[jobType]||[]).includes(techSpecialty);
+}
+function scoreAssignment(tech, job, techCursor){
+  if(tech.status==='descanso') return -Infinity;
+  let score=0;
+  if(specialtyMatches(tech.specialty, job.type)) score+=100; else score-=60;
+  const from = techCursor[tech.id] || {lat:tech.lat, lng:tech.lng, freeAt: WORKDAY_START};
+  const d = dist(from, job);
+  score += (40 - d*0.6);
+  score += PRIORITY_WEIGHT[job.priority]*8;
+  const load = (techCursor[tech.id]?.count)||0;
+  score -= load*4;
+  return score;
+}
+async function runAIPlanning(){
+  const jobs = companyJobs().filter(j=>j.status!=='completado' && j.status!=='en_curso');
+  const techs = companyTechs();
+  if(techs.length===0){ toast('No hay técnicos en esta empresa','warn'); return; }
+  jobs.sort((a,b)=> PRIORITY_WEIGHT[b.priority]-PRIORITY_WEIGHT[a.priority] || a.createdAt-b.createdAt);
+
+  const techCursor={};
+  techs.forEach(t=>{ techCursor[t.id]={lat:t.lat, lng:t.lng, freeAt:WORKDAY_START, count:0}; });
+
+  const log=[];
+  const jobUpdates=[]; // {id, patch}
+  jobs.forEach(job=>{
+    let best=null, bestScore=-Infinity;
+    techs.forEach(t=>{
+      const s=scoreAssignment(t, job, techCursor);
+      if(s>bestScore){ bestScore=s; best=t; }
+    });
+    if(!best || bestScore===-Infinity){
+      log.push({time:fmtTime(WORKDAY_START), text:`No se encontró técnico disponible para <b>${job.client}</b> (${job.type}).`});
+      return;
+    }
+    const cur=techCursor[best.id];
+    const start = Math.max(cur.freeAt, timeToMin(job.windowStart||'08:00'));
+    const patch = {assignedTechId:best.id, status:'asignado', scheduledStart:start, scheduledEnd:start+job.duration};
+    Object.assign(job, patch);
+    jobUpdates.push({id:job.id, patch});
+    const travel = Math.round(dist(cur,job)*4);
+    cur.freeAt = start+job.duration+ (travel>0?10:5);
+    cur.lat=job.lat; cur.lng=job.lng; cur.count++;
+    log.push({time:fmtTime(start), text:`<b>${job.client}</b> (${priorityLabel(job.priority)}) asignado a <b style="color:${best.color}">${best.name}</b> — coincidencia de especialidad y ruta óptima (${Math.round(dist({lat:best.lat,lng:best.lng},job)*8)/10} km aprox).`});
+  });
+
+  const techUpdates=[];
+  techs.forEach(t=>{
+    const newStatus = techCursor[t.id].count>0 ? 'trabajando' : 'disponible';
+    if(t.status!==newStatus){ t.status=newStatus; techUpdates.push({id:t.id, patch:{status:newStatus}}); }
+  });
+
+  toast('Reorganizando jornada…','info');
+  try{
+    await Promise.all([
+      ...jobUpdates.map(u=>api.jobs.update(u.id,u.patch)),
+      ...techUpdates.map(u=>api.techs.update(u.id,u.patch)),
+    ]);
+    toast('Jornada reorganizada por la IA ✅','ok');
+  }catch(e){
+    toast('Algunos cambios no se guardaron: '+e.message,'warn');
+    await fetchCompanyData();
+  }
+  STATE.aiLog = log.slice(0,25);
+  STATE.lastAIRun = Date.now();
+  renderAll();
+}
+async function simulateUrgency(){
+  const techs=companyTechs();
+  if(techs.length===0){ toast('Añade técnicos primero','warn'); return; }
+  const t = techs[Math.floor(Math.random()*techs.length)];
+  const raw={
+    cliente:'Aviso urgente — '+['Fuga de gas','Corte eléctrico total','Inundación en local','Fallo de climatización crítico'][Math.floor(Math.random()*4)],
+    telefono:'6'+Math.floor(10000000+Math.random()*89999999),
+    direccion:'Ubicación reportada por el cliente',
+    tipo:t.specialty, prioridad:'urgente', duracion:45,
+    horario:fmtTime(new Date().getHours()*60+new Date().getMinutes()),
+    material:'Por confirmar', observaciones:'Generado automáticamente como simulación de urgencia.'
+  };
+  try{
+    await api.jobs.create(raw);
+    await fetchCompanyData();
+    toast('Urgencia simulada — reorganizando jornada…','warn');
+    setTimeout(runAIPlanning, 300);
+  }catch(e){ toast(e.message,'warn'); }
+}
+
+function renderPlanificacion(){
+  document.getElementById('aiRunTime').textContent = STATE.lastAIRun ? ('Última ejecución: '+new Date(STATE.lastAIRun).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})) : 'Aún no ejecutada en esta sesión';
+  const list=document.getElementById('aiReasonList');
+  if(!STATE.aiLog || STATE.aiLog.length===0){
+    list.innerHTML = `<div class="empty-state">Pulsa "Organizar jornada con IA" para generar la planificación óptima de hoy.</div>`;
+  } else {
+    list.innerHTML = STATE.aiLog.map(r=>`<div class="reason-item"><span class="rt mono">${r.time}</span><span>${r.text}</span></div>`).join('');
+  }
+  const techs=companyTechs();
+  const jobs=companyJobs();
+  document.getElementById('techLoadList').innerHTML = techs.map(t=>{
+    const tj=jobs.filter(j=>j.assignedTechId===t.id);
+    const totalMin=tj.reduce((s,j)=>s+j.duration,0);
+    const pct=Math.min(100, Math.round(totalMin/ (WORKDAY_END-WORKDAY_START) *100));
+    return `<div class="card" style="padding:12px 14px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="avatar" style="background:${t.color};width:26px;height:26px;font-size:10.5px;">${initials(t.name)}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13px;">${t.name}</div>
+          <div class="small-muted">${t.specialty} · ${tj.length} trabajos</div>
+        </div>
+        <span class="pill ${t.status}"><span class="dot"></span>${t.status==='disponible'?'Disponible':t.status==='trabajando'?'Trabajando':'Descanso'}</span>
+      </div>
+      <div class="progress-bar"><div style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join('') || `<div class="empty-state">No hay técnicos en esta empresa.</div>`;
+}
+
+/* ---------------------- MAPA ---------------------- */
+function renderMap(){
+  const canvas=document.getElementById('mapCanvas');
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.clientWidth; canvas.height=420;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#0f172a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='rgba(255,255,255,.045)'; ctx.lineWidth=1;
+  for(let x=0;x<=100;x+=6){ ctx.beginPath(); ctx.moveTo(x/100*canvas.width,0); ctx.lineTo(x/100*canvas.width,canvas.height); ctx.stroke(); }
+  for(let y=0;y<=100;y+=8){ ctx.beginPath(); ctx.moveTo(0,y/100*canvas.height); ctx.lineTo(canvas.width,y/100*canvas.height); ctx.stroke(); }
+  const toXY = (p)=>({x:p.lng/100*canvas.width, y:p.lat/100*canvas.height});
+
+  const techs=companyTechs();
+  const jobs=companyJobs();
+
+  techs.forEach(t=>{
+    const tj=jobs.filter(j=>j.assignedTechId===t.id && j.status!=='completado').sort((a,b)=>(a.scheduledStart||0)-(b.scheduledStart||0));
+    if(tj.length===0) return;
+    ctx.strokeStyle=t.color; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.globalAlpha=.8;
+    ctx.beginPath();
+    let p=toXY(t); ctx.moveTo(p.x,p.y);
+    tj.forEach(j=>{ const jp=toXY(j); ctx.lineTo(jp.x,jp.y); });
+    ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+  });
+
+  jobs.forEach(j=>{
+    if(j.status==='completado') return;
+    const p=toXY(j);
+    const color = j.priority==='urgente' ? '#e5484d' : '#06b6d4';
+    ctx.beginPath(); ctx.arc(p.x,p.y,6,0,7); ctx.fillStyle=color; ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle='#0f172a'; ctx.stroke();
+  });
+
+  techs.forEach(t=>{
+    const p=toXY(t);
+    ctx.beginPath(); ctx.arc(p.x,p.y,9,0,7);
+    ctx.fillStyle = t.status==='trabajando' ? '#e8a13a' : '#0fa968';
+    ctx.fill(); ctx.lineWidth=2.5; ctx.strokeStyle='#fff'; ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='9px Inter'; ctx.textAlign='center';
+    ctx.fillText(initials(t.name), p.x, p.y+3);
+    ctx.fillStyle='#e2e8f0'; ctx.font='11px Inter'; ctx.fillText(t.name.split(' ')[0], p.x, p.y-15);
+  });
+}
+window.addEventListener('resize', ()=>{ if(document.getElementById('view-mapa').classList.contains('active')) renderMap(); });
+
+/* ---------------------- CALENDARIO ---------------------- */
+function renderCalendar(){
+  const hoursWrap=document.getElementById('calHours');
+  hoursWrap.innerHTML='';
+  for(let m=WORKDAY_START;m<WORKDAY_END;m+=60){ const d=document.createElement('div'); d.textContent=fmtTime(m); hoursWrap.appendChild(d); }
+  const totalWidth=(WORKDAY_END-WORKDAY_START)/60*70;
+
+  const techs=companyTechs();
+  const jobs=companyJobs();
+  const body=document.getElementById('calBody');
+  if(techs.length===0){ body.innerHTML=`<div class="empty-state">No hay técnicos en esta empresa.</div>`; return; }
+  body.innerHTML = techs.map(t=>`
+    <div class="cal-row">
+      <div class="cal-tech"><div class="avatar" style="background:${t.color};width:24px;height:24px;font-size:10px;">${initials(t.name)}</div>${t.name}</div>
+      <div class="cal-track" id="track-${t.id}" style="width:${totalWidth}px;" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="onDropJob(event,'${t.id}')"></div>
+    </div>
+  `).join('');
+
+  jobs.filter(j=>j.assignedTechId && j.scheduledStart!=null && j.status!=='completado').forEach(j=>{
+    const track=document.getElementById('track-'+j.assignedTechId);
+    if(!track) return;
+    const startOffset=(j.scheduledStart-WORKDAY_START)/60*70;
+    const width=(j.duration/60*70)-4;
+    const t=techById(j.assignedTechId);
+    const block=document.createElement('div');
+    block.className='cal-block';
+    block.draggable=true;
+    block.style.left=startOffset+'px';
+    block.style.width=Math.max(width,44)+'px';
+    block.style.background = j.priority==='urgente' ? '#e5484d' : (t?t.color:'#7c5cff');
+    block.innerHTML=`<b>${j.client}</b><span>${fmtTime(j.scheduledStart)}–${fmtTime(j.scheduledEnd)}</span>`;
+    block.ondragstart=()=>{ dragJobId=j.id; block.classList.add('dragging'); };
+    block.ondragend=()=>{ block.classList.remove('dragging'); };
+    track.appendChild(block);
+  });
+}
+async function onDropJob(ev, techId){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('dragover');
+  if(!dragJobId) return;
+  const job=jobById(dragJobId);
+  const track=ev.currentTarget;
+  const rect=track.getBoundingClientRect();
+  const offsetX=ev.clientX-rect.left;
+  let newStart=WORKDAY_START + Math.round(offsetX/70*60/15)*15;
+  newStart=Math.max(WORKDAY_START, Math.min(newStart, WORKDAY_END-job.duration));
+  job.assignedTechId=techId;
+  job.status='asignado';
+  job.scheduledStart=newStart;
+  job.scheduledEnd=newStart+job.duration;
+  const affected = resolveOverlaps(techId);
+  renderCalendar();
+  renderAll();
+  const toSave = [{id:job.id, patch:{assignedTechId:job.assignedTechId, status:job.status, scheduledStart:job.scheduledStart, scheduledEnd:job.scheduledEnd}}, ...affected];
+  try{
+    await Promise.all(toSave.map(u=>api.jobs.update(u.id,u.patch)));
+    toast('Trabajo reasignado — la IA ha recalculado la jornada del técnico','info');
+  }catch(e){
+    toast('No se pudo guardar el cambio: '+e.message,'warn');
+    await fetchCompanyData(); renderCalendar(); renderAll();
+  }
+  dragJobId=null;
+}
+function resolveOverlaps(techId){
+  const tj=companyJobs().filter(j=>j.assignedTechId===techId && j.status!=='completado' && j.scheduledStart!=null)
+    .sort((a,b)=>a.scheduledStart-b.scheduledStart);
+  let cursor=WORKDAY_START;
+  const affected=[];
+  tj.forEach(j=>{
+    if(j.scheduledStart<cursor){
+      j.scheduledStart=cursor; j.scheduledEnd=cursor+j.duration;
+      affected.push({id:j.id, patch:{scheduledStart:j.scheduledStart, scheduledEnd:j.scheduledEnd}});
+    }
+    cursor=Math.max(cursor,j.scheduledEnd)+5;
+  });
+  return affected;
+}
+
+/* ---------------------- APP TECNICO ---------------------- */
+function renderTechApp(){
+  const gate=document.getElementById('techAppGate');
+  let tech;
+  if(currentUser.role==='tecnico'){
+    tech=techById(currentUser.technicianId);
+    if(!tech){ gate.innerHTML=`<div class="role-gate">Tu usuario no tiene un técnico vinculado. Pide al gerente que lo enlace desde el Panel admin.</div>`; return; }
+  } else {
+    const techs=companyTechs();
+    if(techs.length===0){ gate.innerHTML=`<div class="role-gate">No hay técnicos en esta empresa.</div>`; return; }
+    if(!window._previewTechId || !techs.find(t=>t.id===window._previewTechId)) window._previewTechId=techs[0].id;
+    tech=techById(window._previewTechId);
+  }
+  const jobs=companyJobs().filter(j=>j.assignedTechId===tech.id).sort((a,b)=>(a.scheduledStart||0)-(b.scheduledStart||0));
+
+  let previewSelector='';
+  if(currentUser.role!=='tecnico'){
+    previewSelector = `<div class="filter-bar"><span class="small-muted">Vista previa como técnico:</span>
+      <select onchange="window._previewTechId=this.value;renderTechApp();">
+        ${companyTechs().map(t=>`<option value="${t.id}" ${t.id===tech.id?'selected':''}>${t.name}</option>`).join('')}
+      </select></div>`;
+  }
+
+  gate.innerHTML = previewSelector + `
+    <div class="two-col">
+      <div>
+        <div class="section-title" style="margin-top:0;"><h3>${tech.name} — ${jobs.length} trabajos hoy</h3><span class="hint">${tech.specialty}</span></div>
+        <div id="techJobsList">${jobs.length? jobs.map(j=>techJobCard(j)).join('') : '<div class="empty-state">Sin trabajos asignados. Ejecuta la planificación IA.</div>'}</div>
+      </div>
+      <div>
+        <div class="section-title" style="margin-top:0;"><h3>Ruta de hoy</h3></div>
+        <div class="map-wrap"><canvas id="mapCanvasTech" style="height:340px;display:block;width:100%;"></canvas></div>
+      </div>
+    </div>`;
+  drawTechMiniMap(tech, jobs);
+}
+function techJobCard(j){
+  const nextAction = j.status==='asignado' ? `<button class="btn sm primary" onclick="advanceJob('${j.id}')">Iniciar trabajo</button>`
+    : j.status==='en_curso' ? `<button class="btn sm accent" onclick="advanceJob('${j.id}')">Trabajo finalizado</button>`
+    : `<span class="pill completado"><span class="dot"></span>Completado</span>`;
+  return `<div class="tech-job-card">
+    <div class="top">
+      <div><h4>${j.client}</h4><div class="meta">${j.address} · ${j.phone||'—'}</div></div>
+      <span class="pill ${j.priority}"><span class="dot"></span>${priorityLabel(j.priority)}</span>
+    </div>
+    <div class="meta"><b>${j.type}</b> · ${j.duration} min · ${fmtTime(j.scheduledStart)}–${fmtTime(j.scheduledEnd)}</div>
+    ${j.material?`<div class="meta">Material: ${j.material}</div>`:''}
+    ${j.notes?`<div class="meta">Notas: ${j.notes}</div>`:''}
+    <div class="foot"><span class="pill ${j.status}"><span class="dot"></span>${statusLabel(j.status)}</span>${nextAction}</div>
+  </div>`;
+}
+async function advanceJob(id){
+  const j=jobById(id);
+  try{
+    if(j.status==='asignado'){
+      await api.jobs.update(id,{status:'en_curso'});
+      j.status='en_curso';
+      pushNotification(id,'en_camino', `Tu técnico va de camino a ${j.address}. Llegada estimada ${fmtTime(j.scheduledStart)}.`);
+      toast('Trabajo iniciado','info');
+    } else if(j.status==='en_curso'){
+      await api.jobs.update(id,{status:'completado'});
+      j.status='completado';
+      const t=techById(j.assignedTechId);
+      if(t){
+        const stillWorking = companyJobs().some(x=>x.assignedTechId===t.id && x.status==='en_curso');
+        const newStatus = stillWorking ? 'trabajando' : 'disponible';
+        if(t.status!==newStatus){ t.status=newStatus; api.techs.update(t.id,{status:newStatus}).catch(()=>{}); }
+      }
+      pushNotification(id,'finalizado', `El servicio en ${j.address} ha finalizado. ¡Gracias por confiar en nosotros!`);
+      await generateBudgetDraft(j);
+      toast('Trabajo finalizado — presupuesto generado','ok');
+    }
+    renderTechApp();
+    renderAll();
+  }catch(e){ toast(e.message||'No se pudo actualizar el trabajo','warn'); }
+}
+function drawTechMiniMap(tech, jobs){
+  const canvas=document.getElementById('mapCanvasTech'); if(!canvas) return;
+  canvas.width=canvas.parentElement.clientWidth; canvas.height=340;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#0f172a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='rgba(255,255,255,.05)';
+  for(let x=0;x<=100;x+=10){ ctx.beginPath(); ctx.moveTo(x/100*canvas.width,0); ctx.lineTo(x/100*canvas.width,canvas.height); ctx.stroke(); }
+  const toXY=(p)=>({x:p.lng/100*canvas.width, y:p.lat/100*canvas.height});
+  const pending=jobs.filter(j=>j.status!=='completado');
+  ctx.strokeStyle=tech.color; ctx.lineWidth=2; ctx.setLineDash([5,4]);
+  ctx.beginPath(); let p=toXY(tech); ctx.moveTo(p.x,p.y);
+  pending.forEach(j=>{ const jp=toXY(j); ctx.lineTo(jp.x,jp.y); });
+  ctx.stroke(); ctx.setLineDash([]);
+  pending.forEach((j,i)=>{
+    const jp=toXY(j);
+    ctx.beginPath(); ctx.arc(jp.x,jp.y,7,0,7); ctx.fillStyle= j.priority==='urgente'?'#e5484d':'#06b6d4'; ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='9px Inter'; ctx.textAlign='center'; ctx.fillText(i+1, jp.x, jp.y+3);
+  });
+  ctx.beginPath(); ctx.arc(p.x,p.y,9,0,7); ctx.fillStyle=tech.color; ctx.fill(); ctx.lineWidth=2.5; ctx.strokeStyle='#fff'; ctx.stroke();
+}
+
+/* ---------------------- CLIENTES ---------------------- */
+function renderClientes(){
+  const notifs=STATE.notifications;
+  const tbl=document.getElementById('notifTable');
+  if(notifs.length===0){ tbl.innerHTML=`<tr><td class="empty-state">Aún no se han enviado comunicaciones.</td></tr>`; return; }
+  const kindLabel={confirmacion:'Confirmación de servicio',urgencia:'Aviso de urgencia recibido',en_camino:'Técnico en camino',finalizado:'Servicio finalizado'};
+  tbl.innerHTML = `<tr><th>Cliente</th><th>Tipo</th><th>Mensaje</th><th>Hora</th></tr>` + notifs.slice(0,60).map(n=>{
+    const j=jobById(n.jobId);
+    return `<tr><td><b>${j?j.client:'—'}</b></td><td><span class="pill asignado">${kindLabel[n.kind]||n.kind}</span></td><td class="small-muted">${n.message}</td><td class="mono small-muted">${new Date(n.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</td></tr>`;
+  }).join('');
+}
+
+/* ---------------------- PRESUPUESTOS ---------------------- */
+async function generateBudgetDraft(job){
+  const rate=36;
+  const hours = Math.round((job.duration/60)*100)/100;
+  const laborCost = Math.round(hours*rate*100)/100;
+  const materialCost = Math.round((15 + job.material.length*1.3 + Math.random()*30)*100)/100;
+  const total = Math.round((laborCost+materialCost)*100)/100;
+  try{
+    const budget = await api.budgets.create({jobId:job.id, client:job.client, type:job.type, hours, laborCost, materialCost, total});
+    STATE.budgets.unshift(budget);
+  }catch(e){ console.error(e); }
+}
+function renderBudgets(){
+  const list=STATE.budgets;
+  const tbl=document.getElementById('budgetTable');
+  if(list.length===0){ tbl.innerHTML=`<tr><td class="empty-state">Los presupuestos se generan automáticamente al finalizar un trabajo.</td></tr>`; return; }
+  tbl.innerHTML = `<tr><th>Cliente</th><th>Servicio</th><th>Horas</th><th>Mano de obra</th><th>Material</th><th>Total</th><th>Fecha</th></tr>` +
+    list.map(b=>`<tr><td><b>${b.client}</b></td><td>${b.type}</td><td>${b.hours} h</td><td>${(+b.laborCost).toFixed(2)} €</td><td>${(+b.materialCost).toFixed(2)} €</td><td><b>${(+b.total).toFixed(2)} €</b></td><td class="small-muted">${new Date(b.createdAt).toLocaleDateString('es-ES')}</td></tr>`).join('');
+}
+
+/* ---------------------- ESTADISTICAS ---------------------- */
+function renderStats(){
+  const jobs=companyJobs();
+  const techs=companyTechs();
+  const completed=jobs.filter(j=>j.status==='completado');
+  const avgTime = completed.length? Math.round(completed.reduce((s,j)=>s+j.duration,0)/completed.length) : 0;
+  const totalKm = Math.round(jobs.filter(j=>j.assignedTechId).length*(3.6)+Math.random()*4);
+  const productiveHours = Math.round(completed.reduce((s,j)=>s+j.duration,0)/60*10)/10;
+  const beneficio = STATE.budgets.reduce((s,b)=>s+(+b.total||0),0);
+
+  const cards=[
+    ["Tiempo medio por trabajo", avgTime+" min", iconClock(), "#3457c9"],
+    ["Km recorridos", totalKm+" km", iconRoute(), "#06b6d4"],
+    ["Horas productivas", productiveHours+" h", iconBar(), "#0fa968"],
+    ["Beneficio estimado", Math.round(beneficio)+" €", iconCoin(), "#7c5cff"],
+    ["Trabajos por técnico (media)", techs.length? Math.round(jobs.filter(j=>j.assignedTechId).length/techs.length*10)/10 : 0, iconUser(), "#e8a13a"],
+  ];
+  document.getElementById('statCards2').innerHTML = cards.map(statCardHTML).join('');
+
+  renderWeekChart('chartEvoWeek', jobs);
+
+  const effTechs=techs.slice().sort((a,b)=>b.efficiency-a.efficiency);
+  mkChart('chartEff','bar',{labels:effTechs.map(t=>t.name.split(' ')[0]), datasets:[{label:'Eficiencia %',data:effTechs.map(t=>t.efficiency), backgroundColor:effTechs.map(t=>t.color), borderRadius:6, maxBarThickness:26}]},
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,max:100,grid:{color:'#f0f1f6'}},y:{grid:{display:false}}}});
+
+  const monthDays=[]; const monthCounts=[];
+  for(let i=29;i>=0;i-=3){ monthDays.push('D-'+i); monthCounts.push(Math.round(4+Math.random()*10)); }
+  mkChart('chartEvoMonth','line',{labels:monthDays, datasets:[{label:'Trabajos/día', data:monthCounts, borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,.12)', fill:true, tension:.35, pointRadius:0}]},
+    {plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f0f1f6'}},x:{grid:{display:false}}}});
+
+  const byType={};
+  jobs.forEach(j=>{ byType[j.type]=(byType[j.type]||0)+1; });
+  mkChart('chartByType','doughnut',{labels:Object.keys(byType), datasets:[{data:Object.values(byType), backgroundColor:['#7c5cff','#06b6d4','#0fa968','#e8a13a','#e5484d','#3457c9','#b06a12'], borderWidth:0}]},
+    {plugins:{legend:{position:'bottom',labels:{boxWidth:9,font:{size:10.5}}}},cutout:'58%'});
+}
+
+/* ---------------------- INTEGRACIONES ---------------------- */
+async function processWebhookPayload(){
+  const raw=document.getElementById('webhookPayload').value.trim();
+  const resultEl=document.getElementById('webhookResult');
+  if(!raw){ resultEl.innerHTML='<span style="color:#e5484d;">Pega un JSON antes de procesar.</span>'; return; }
+  let parsed;
+  try{ parsed=JSON.parse(raw); }
+  catch(e){ resultEl.innerHTML='<span style="color:#e5484d;">JSON inválido: '+e.message+'</span>'; return; }
+  try{
+    const res = await api.jobs.create(parsed);
+    resultEl.innerHTML = `<span style="color:#0fa968;">✔ ${res.created.length} pedido(s) creado(s) e insertado(s) en la planificación${res.rejected.length?`, ${res.rejected.length} rechazado(s)`:''}. Esta llamada usó tu sesión actual — un sistema externo real usaría la clave de API de abajo en su lugar.</span>`;
+    toast(res.created.length+' pedido(s) recibido(s) por integración','ok');
+    await fetchCompanyData();
+    renderAll();
+  }catch(e){
+    resultEl.innerHTML = '<span style="color:#e5484d;">'+e.message+'</span>';
+  }
+}
+async function renderIntegraciones(){
+  const items=[
+    ["Backend con base de datos", "Ya está conectado — este panel lee y escribe en tu backend real, no en el navegador.", false],
+    ["Autenticación real", "Ya está activa — login con contraseña cifrada y sesión por token (JWT).", false],
+    ["Endpoint de ingestión de pedidos", "Ya disponible en tu backend: POST /v1/pedidos.", false],
+    ["Conector de WhatsApp Business API / email / formulario web", "Falta: un servicio que traduzca los mensajes entrantes de cada canal al formato de pedido y llame al endpoint anterior con la clave de API de abajo.", true],
+    ["Clave real de Google Maps / OpenStreetMap", "Falta: para tráfico en tiempo real, geocodificación de direcciones y cálculo real de rutas — el mapa actual sigue siendo una simulación visual.", true],
+    ["Envío real de notificaciones", "Falta: integrar un proveedor de WhatsApp/SMS/email (ej. Twilio, Meta Cloud API) donde ahora solo hay un registro guardado.", true],
+  ];
+  document.getElementById('prodChecklist').innerHTML = items.map(([t,d,pending])=>`
+    <div style="display:flex;gap:9px;padding:8px 0;border-bottom:1px solid #f0f1f6;">
+      <div style="width:16px;height:16px;border-radius:5px;flex-shrink:0;margin-top:2px;${pending?'border:1.5px solid #d8dbe6;':'background:#0fa968;display:flex;align-items:center;justify-content:center;'}">${pending?'':'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>'}</div>
+      <div><b style="font-size:12.5px;">${t}</b><div class="small-muted" style="margin-top:2px;">${d}</div></div>
+    </div>`).join('');
+
+  const keyBox=document.getElementById('apiKeyBox');
+  try{
+    let apiKey;
+    if(currentUser.role==='admin'){ apiKey = co()?.apiKey; }
+    else{ const mine = await api.companies.me(); apiKey = mine.apiKey; co().apiKey = apiKey; }
+    keyBox.innerHTML = `<div class="card mono" style="font-size:12px;word-break:break-all;">${apiKey}</div>
+      <button class="btn sm" style="margin-top:8px;" onclick="rotateApiKey()">Regenerar clave (revoca la anterior)</button>`;
+  }catch(e){ keyBox.innerHTML = `<div class="small-muted">No se pudo obtener la clave: ${e.message}</div>`; }
+}
+async function rotateApiKey(){
+  if(!confirm('Esto invalidará la clave actual. Cualquier integración que la use dejará de funcionar hasta que la actualices allí también. ¿Continuar?')) return;
+  try{
+    const {apiKey} = await api.companies.rotateKey(currentUser.role==='admin'?STATE.currentCompanyId:null);
+    toast('Nueva clave generada','ok');
+    renderIntegraciones();
+  }catch(e){ toast(e.message,'warn'); }
+}
+
+/* ---------------------- ADMIN ---------------------- */
+function renderAdmin(){
+  const gate=document.getElementById('adminGate');
+  if(currentUser.role!=='admin' && currentUser.role!=='gerente'){ gate.innerHTML=`<div class="role-gate">Solo un gerente o administrador puede acceder al panel de administración.</div>`; return; }
+  const isAdmin = currentUser.role==='admin';
+  gate.innerHTML = `
+    ${isAdmin ? `<div class="section-title" style="margin-top:0;"><h3>Empresas</h3><button class="btn accent sm" onclick="openAdminCompany()">+ Nueva empresa</button></div>
+    <div class="table-card"><div class="table-wrap"><table>
+      <tr><th>Empresa</th><th>Sector</th><th></th></tr>
+      ${STATE.companies.map(c=>`<tr><td><b>${c.name}</b></td><td>${c.sector}</td>
+        <td><button class="btn sm" onclick="switchCompany('${c.id}').then(()=>go('admin'))">Ver datos</button> <button class="btn sm danger" onclick="deleteCompany('${c.id}')">Eliminar</button></td></tr>`).join('')}
+    </table></div></div>` : ''}
+
+    <div class="section-title" ${isAdmin?'':'style="margin-top:0;"'}><h3>Técnicos — ${co()?co().name:''}</h3><button class="btn accent sm" onclick="openAdminTech()">+ Nuevo técnico</button></div>
+    <div class="table-card"><div class="table-wrap"><table>
+      <tr><th>Nombre</th><th>Especialidad</th><th>Estado</th><th>Eficiencia</th><th></th></tr>
+      ${companyTechs().map(t=>`<tr><td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar" style="background:${t.color};width:24px;height:24px;font-size:10px;">${initials(t.name)}</div>${t.name}</div></td>
+        <td>${t.specialty}</td><td><span class="pill ${t.status}"><span class="dot"></span>${t.status}</span></td><td>${t.efficiency}%</td>
+        <td><button class="btn sm danger" onclick="deleteTech('${t.id}')">Eliminar</button></td></tr>`).join('') || '<tr><td class="empty-state">Sin técnicos</td></tr>'}
+    </table></div></div>
+
+    <div class="section-title"><h3>Usuarios — ${co()?co().name:''}</h3><button class="btn accent sm" onclick="openAdminUser()">+ Nuevo usuario</button></div>
+    <div class="table-card"><div class="table-wrap"><table>
+      <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Técnico vinculado</th><th></th></tr>
+      ${STATE.users.map(u=>`<tr><td>${u.name}</td><td>${u.email}</td><td><span class="pill asignado">${u.role}</span></td><td class="small-muted">${u.technicianId? (techById(u.technicianId)?.name||'—') : '—'}</td>
+        <td><button class="btn sm" onclick="openResetPassword('${u.id}','${u.name.replace(/'/g,"")}')">Cambiar clave</button> <button class="btn sm danger" onclick="deleteUser('${u.id}')">Eliminar</button></td></tr>`).join('') || '<tr><td class="empty-state">Sin usuarios adicionales</td></tr>'}
+    </table></div></div>
+  `;
+}
+function openAdminCompany(){
+  document.getElementById('adminModalTitle').textContent='Nueva empresa';
+  document.getElementById('adminModalBody').innerHTML=`
+    <div class="form-row full"><div class="form-field"><label>Nombre</label><input id="admCoName" placeholder="Nombre de la empresa"></div></div>
+    <div class="form-row full"><div class="form-field"><label>Sector</label><input id="admCoSector" placeholder="Ej: Fontanería & Reformas"></div></div>`;
+  document.getElementById('adminModalSave').onclick=async ()=>{
+    const name=document.getElementById('admCoName').value.trim();
+    if(!name){ toast('Indica un nombre','warn'); return; }
+    try{
+      await api.companies.create({name, sector:document.getElementById('admCoSector').value.trim()||'Servicios técnicos'});
+      STATE.companies = await api.companies.list();
+      closeModal('adminModalBackdrop'); toast('Empresa creada','ok');
+      document.getElementById('companySwitch').innerHTML = STATE.companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      renderAdmin();
+    }catch(e){ toast(e.message,'warn'); }
+  };
+  openModalEl('adminModalBackdrop');
+}
+async function deleteCompany(id){
+  if(STATE.companies.length<=1){ toast('Debe existir al menos una empresa','warn'); return; }
+  if(!confirm('Esto eliminará también sus técnicos, usuarios y pedidos. ¿Continuar?')) return;
+  try{
+    await api.companies.remove(id);
+    STATE.companies = await api.companies.list();
+    if(STATE.currentCompanyId===id) STATE.currentCompanyId=STATE.companies[0].id;
+    await fetchCompanyData();
+    initAppUI();
+  }catch(e){ toast(e.message,'warn'); }
+}
+function openAdminTech(){
+  document.getElementById('adminModalTitle').textContent='Nuevo técnico';
+  document.getElementById('adminModalBody').innerHTML=`
+    <div class="form-row"><div class="form-field"><label>Nombre</label><input id="admTName" placeholder="Nombre y apellido"></div>
+    <div class="form-field"><label>Especialidad</label><select id="admTSpec">${SPECIALTIES.map(s=>`<option>${s}</option>`).join('')}</select></div></div>`;
+  document.getElementById('adminModalSave').onclick=async ()=>{
+    const name=document.getElementById('admTName').value.trim();
+    if(!name){ toast('Indica un nombre','warn'); return; }
+    try{
+      await api.techs.create({name, specialty:document.getElementById('admTSpec').value});
+      await fetchCompanyData();
+      closeModal('adminModalBackdrop'); toast('Técnico creado','ok'); renderAdmin();
+    }catch(e){ toast(e.message,'warn'); }
+  };
+  openModalEl('adminModalBackdrop');
+}
+async function deleteTech(id){
+  try{
+    await api.techs.remove(id);
+    await fetchCompanyData();
+    renderAdmin();
+  }catch(e){ toast(e.message,'warn'); }
+}
+function openAdminUser(){
+  document.getElementById('adminModalTitle').textContent='Nuevo usuario';
+  const techOptions = companyTechs().map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('adminModalBody').innerHTML=`
+    <div class="form-row"><div class="form-field"><label>Nombre</label><input id="admUName"></div>
+    <div class="form-field"><label>Correo</label><input id="admUEmail" placeholder="persona@empresa.com"></div></div>
+    <div class="form-row"><div class="form-field"><label>Contraseña inicial</label><input id="admUPass" type="password" placeholder="Mínimo 6 caracteres"></div>
+    <div class="form-field"><label>Rol</label><select id="admURole" onchange="document.getElementById('admUTechWrap').style.display=this.value==='tecnico'?'block':'none';">
+      <option value="gerente">Gerente</option><option value="tecnico">Técnico (acceso a la app)</option>
+    </select></div></div>
+    <div class="form-row full" id="admUTechWrap" style="display:none;"><div class="form-field"><label>Técnico vinculado</label><select id="admUTechId"><option value="">— Ninguno —</option>${techOptions}</select></div></div>`;
+  document.getElementById('adminModalSave').onclick=async ()=>{
+    const name=document.getElementById('admUName').value.trim();
+    const email=document.getElementById('admUEmail').value.trim();
+    const password=document.getElementById('admUPass').value;
+    const role=document.getElementById('admURole').value;
+    const technicianId=document.getElementById('admUTechId')?.value||null;
+    if(!name||!email||!password){ toast('Rellena nombre, correo y contraseña','warn'); return; }
+    if(password.length<6){ toast('La contraseña debe tener al menos 6 caracteres','warn'); return; }
+    try{
+      await api.users.create({name,email,password,role,technicianId: role==='tecnico'?technicianId:null});
+      STATE.users = await api.users.list(currentUser.role==='admin'?STATE.currentCompanyId:undefined);
+      closeModal('adminModalBackdrop'); toast('Usuario creado','ok'); renderAdmin();
+    }catch(e){ toast(e.message,'warn'); }
+  };
+  openModalEl('adminModalBackdrop');
+}
+function openResetPassword(userId, userName){
+  document.getElementById('adminModalTitle').textContent='Cambiar contraseña de '+userName;
+  document.getElementById('adminModalBody').innerHTML=`
+    <div class="form-row full"><div class="form-field"><label>Nueva contraseña (mínimo 6 caracteres)</label><input id="admResetPass" type="password"></div></div>`;
+  document.getElementById('adminModalSave').onclick=async ()=>{
+    const pass=document.getElementById('admResetPass').value;
+    if(!pass||pass.length<6){ toast('La contraseña debe tener al menos 6 caracteres','warn'); return; }
+    try{
+      await api.users.setPassword(userId, pass);
+      closeModal('adminModalBackdrop'); toast('Contraseña actualizada','ok');
+    }catch(e){ toast(e.message,'warn'); }
+  };
+  openModalEl('adminModalBackdrop');
+}
+async function deleteUser(id){
+  try{
+    await api.users.remove(id);
+    STATE.users = STATE.users.filter(u=>u.id!==id);
+    renderAdmin();
+  }catch(e){ toast(e.message,'warn'); }
+}
+
+/* ---------------------- RESUMEN (solo admin) ---------------------- */
+const STATUS_LABEL_BILLING = {active:'Activa',trial:'Prueba',past_due:'Pago fallido',canceled:'Cancelada',trialing:'Prueba',unpaid:'Impagada'};
+const STATUS_PILL_CLASS = {active:'completado',trial:'pendiente',past_due:'urgente',canceled:'baja',trialing:'pendiente',unpaid:'urgente'};
+async function renderResumen(){
+  const gate=document.getElementById('resumenGate');
+  if(currentUser.role!=='admin'){ gate.innerHTML=`<div class="role-gate">Solo el administrador puede ver el resumen de todas las empresas.</div>`; return; }
+  gate.innerHTML=`<div class="empty-state">Cargando resumen…</div>`;
+  try{
+    const data = await api.billing.resumen();
+    const t=data.totals;
+    const cards=[
+      ["Empresas", t.companies, iconUser(), "#3457c9"],
+      ["Empleados totales", t.employees, iconUser(), "#7c5cff"],
+      ["Suscripciones activas", t.activeSubscriptions, iconCheck(), "#0fa968"],
+      ["En prueba / sin plan", t.trialCompanies, iconClock(), "#e8a13a"],
+      ["Con pago fallido", t.pastDue, iconBolt(), "#e5484d"],
+      ["Ingreso mensual recurrente (MRR)", t.mrrEUR+" €", iconCoin(), "#0fa968"],
+    ];
+    gate.innerHTML = `
+      <div class="grid grid-cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:22px;">${cards.map(statCardHTML).join('')}</div>
+      <div class="section-title" style="margin-top:0;"><h3>Empresas</h3></div>
+      <div class="table-card"><div class="table-wrap"><table>
+        <tr><th>Empresa</th><th>Gerente</th><th>Empleados</th><th>Plan</th><th>Precio</th><th>Estado de pago</th><th>Próxima renovación</th><th></th></tr>
+        ${data.companies.map(c=>`<tr>
+          <td><b>${c.name}</b></td>
+          <td>${c.gerenteName?`${c.gerenteName}<div class="small-muted">${c.gerenteEmail}</div>`:'<span class="small-muted">Sin gerente asignado</span>'}</td>
+          <td>${c.employeeCount}</td>
+          <td>${c.planName}</td>
+          <td>${c.priceEUR?c.priceEUR+' €/mes':'—'}</td>
+          <td><span class="pill ${STATUS_PILL_CLASS[c.subscriptionStatus]||'baja'}"><span class="dot"></span>${STATUS_LABEL_BILLING[c.subscriptionStatus]||c.subscriptionStatus}${c.cancelAtPeriodEnd?' (cancela)':''}</span></td>
+          <td class="small-muted">${c.currentPeriodEnd? new Date(c.currentPeriodEnd).toLocaleDateString('es-ES') : '—'}</td>
+          <td><button class="btn sm" onclick="switchCompany('${c.id}').then(()=>go('facturacion'))">Ver facturación</button></td>
+        </tr>`).join('')}
+      </table></div></div>
+      <div class="small-muted" style="margin-top:12px;">La gestión de técnicos, pedidos y usuarios de cada empresa la hace su propio gerente — este resumen es solo para el seguimiento del negocio (clientes y facturación), no para entrar en su operativa diaria.</div>`;
+  }catch(e){ gate.innerHTML = `<div class="empty-state">No se pudo cargar el resumen: ${e.message}</div>`; }
+}
+
+/* ---------------------- FACTURACIÓN (gerente/admin) ---------------------- */
+async function renderFacturacion(){
+  const gate=document.getElementById('facturacionGate');
+  if(currentUser.role==='tecnico'){ gate.innerHTML=`<div class="role-gate">La facturación la gestiona el gerente de la empresa.</div>`; return; }
+  gate.innerHTML=`<div class="empty-state">Cargando…</div>`;
+  try{
+    const [mine, plans] = await Promise.all([api.billing.me(), api.billing.plans()]);
+    const statusPill = `<span class="pill ${STATUS_PILL_CLASS[mine.subscriptionStatus]||'baja'}"><span class="dot"></span>${STATUS_LABEL_BILLING[mine.subscriptionStatus]||mine.subscriptionStatus}${mine.cancelAtPeriodEnd?' (se cancelará al final del periodo)':''}</span>`;
+    gate.innerHTML = `
+      <div class="card" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="small-muted">Plan actual de ${co()?co().name:''}</div>
+          <div style="font-size:20px;font-weight:700;margin-top:2px;">${mine.planName||'Sin plan (prueba)'} ${mine.priceEUR?`· ${mine.priceEUR} €/mes`:''}</div>
+          <div style="margin-top:8px;">${statusPill}</div>
+          ${mine.currentPeriodEnd?`<div class="small-muted" style="margin-top:6px;">Próxima renovación: ${new Date(mine.currentPeriodEnd).toLocaleDateString('es-ES')}</div>`:''}
+        </div>
+        <button class="btn" onclick="openBillingPortal()">Gestionar método de pago / cancelar</button>
+      </div>
+      <div class="section-title" style="margin-top:0;"><h3>Cambiar de plan</h3></div>
+      <div class="grid" style="grid-template-columns:repeat(4,1fr);">
+        ${plans.map(p=>`
+          <div class="card" style="display:flex;flex-direction:column;${mine.planId===p.id?'border-color:#06b6d4;box-shadow:0 0 0 2px rgba(6,182,212,.25);':''}">
+            <div style="font-weight:700;font-size:14.5px;">${p.name} ${mine.planId===p.id?'<span class="small-muted">(actual)</span>':''}</div>
+            <div style="margin:6px 0;font-size:20px;font-weight:700;">${p.contactOnly?'A medida':p.priceEUR+' €<span style="font-size:11px;color:var(--slate-500);font-weight:500;">/mes</span>'}</div>
+            <div class="small-muted" style="flex:1;margin-bottom:10px;">${p.description}</div>
+            ${p.contactOnly
+              ? `<a class="btn sm" href="mailto:ventas@tuempresa.com?subject=FlowOps%20AI%20Enterprise">Contactar con ventas</a>`
+              : mine.planId===p.id
+                ? `<button class="btn sm" disabled style="opacity:.5;">Plan actual</button>`
+                : `<button class="btn sm accent" onclick="chooseBillingPlan('${p.id}')">Elegir este plan</button>`}
+          </div>`).join('')}
+      </div>
+      <div class="small-muted" style="margin-top:16px;">El pago se procesa con Stripe. Si tu empresa aún no ha activado ningún plan, estás en modo prueba sin límite de tiempo hasta que elijas uno.</div>`;
+  }catch(e){ gate.innerHTML = `<div class="empty-state">No se pudo cargar la facturación: ${e.message}</div>`; }
+}
+async function chooseBillingPlan(planId){
+  try{
+    const {url} = await api.billing.checkout(planId);
+    window.location.href = url;
+  }catch(e){ toast(e.message,'warn'); }
+}
+async function openBillingPortal(){
+  try{
+    const {url} = await api.billing.portal();
+    window.location.href = url;
+  }catch(e){ toast(e.message,'warn'); }
+}
+
+/* ---------------------- CHAT IA (Claude API) ---------------------- */
+function initChatSuggestions(){
+  const sug=["¿Qué técnico está menos cargado?","¿Cuántas urgencias hay activas?","Resume la jornada de hoy"];
+  document.getElementById('chatSuggestions').innerHTML = sug.map(s=>`<span class="chip" onclick="document.getElementById('chatInput').value='${s.replace(/'/g,"\\'")}';sendChat();">${s}</span>`).join('');
+  document.getElementById('chatBody').innerHTML = `<div class="msg ai">Hola, soy el asistente de FlowOps. Puedo responder preguntas sobre los técnicos, pedidos y la planificación de <b>${co()?co().name:'tu empresa'}</b> usando los datos reales de la app.</div>`;
+}
+function toggleChat(){ document.getElementById('chatPanel').classList.toggle('open'); }
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if(!text) return;
+  const body=document.getElementById('chatBody');
+  body.innerHTML += `<div class="msg user">${escapeHtml(text)}</div>`;
+  input.value='';
+  const loadingId='ld_'+Date.now();
+  body.innerHTML += `<div class="msg ai loading" id="${loadingId}">Consultando los datos…</div>`;
+  body.scrollTop=body.scrollHeight;
+
+  const jobs=companyJobs();
+  const techs=companyTechs();
+  const context = {
+    empresa: co()?co().name:'',
+    fecha_hoy: new Date().toLocaleDateString('es-ES'),
+    tecnicos: techs.map(t=>({nombre:t.name, especialidad:t.specialty, estado:t.status, eficiencia:t.efficiency,
+      trabajos_asignados: jobs.filter(j=>j.assignedTechId===t.id && j.status!=='completado').length})),
+    pedidos: jobs.map(j=>({cliente:j.client, tipo:j.type, prioridad:j.priority, estado:j.status,
+      tecnico: techById(j.assignedTechId)?.name || null, inicio: fmtTime(j.scheduledStart), fin: fmtTime(j.scheduledEnd), duracion_min:j.duration})),
+  };
+  const sysPrompt = `Eres el asistente de datos de FlowOps AI, un software de planificación para empresas de servicios técnicos. Responde SIEMPRE en español, de forma breve (máx. 4-5 frases), concreta y basada exclusivamente en el JSON de datos proporcionado. Si la respuesta requiere un cálculo (ej. técnico menos cargado, tiempo perdido si se acepta un trabajo), hazlo tú mismo con los datos dados. Si no hay datos suficientes, dilo con claridad. No inventes datos que no estén en el contexto.\n\nDATOS ACTUALES:\n${JSON.stringify(context)}`;
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens:500,
+        system: sysPrompt,
+        messages:[{role:"user", content:text}]
+      })
+    });
+    const data = await response.json();
+    const textResp = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n') || 'No he podido generar una respuesta.';
+    document.getElementById(loadingId).outerHTML = `<div class="msg ai">${escapeHtml(textResp).replace(/\n/g,'<br>')}</div>`;
+  }catch(err){
+    document.getElementById(loadingId).outerHTML = `<div class="msg ai">No he podido conectar con el asistente en este momento. Puedes seguir usando el resto de la plataforma con normalidad.</div>`;
+  }
+  body.scrollTop=body.scrollHeight;
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ---------------------- BOOT ---------------------- */
+(async function boot(){
+  API_BASE = localStorage.getItem('flowops_api_url') || '';
+  const savedToken = localStorage.getItem('flowops_token');
+  const savedUser = localStorage.getItem('flowops_user');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const verifyToken = urlParams.get('verify_email');
+  if(verifyToken && API_BASE){
+    try{
+      const res = await apiFetch('/v1/auth/email-change/confirm',{method:'POST',body:JSON.stringify({token:verifyToken})});
+      alert('Correo confirmado correctamente. Tu nuevo email de acceso es: '+res.newEmail+'\n\nInicia sesión con él.');
+    }catch(e){
+      alert('No se pudo confirmar el correo: '+e.message);
+    }
+    window.history.replaceState({}, '', window.location.pathname);
+    authToken=null; currentUser=null;
+    localStorage.removeItem('flowops_token'); localStorage.removeItem('flowops_user');
+    showLoginScreen();
+    return;
+  }
+
+  if(!API_BASE){ showConnectScreen(); return; }
+
+  if(savedToken && savedUser){
+    authToken = savedToken;
+    currentUser = JSON.parse(savedUser);
+    try{
+      await afterLogin();
+      return;
+    }catch(e){
+      // token caducado o inválido: seguimos al login normal
+    }
+  }
+  showLoginScreen();
+})();
+
+</script>
+</body>
+</html>
