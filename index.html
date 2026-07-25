@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FlowOps AI — Planificación inteligente de servicios técnicos</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FlowOps AI">
+<meta name="theme-color" content="#0f172a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -291,6 +296,46 @@ tr:last-child td{border-bottom:none;}
 .divider{height:1px;background:var(--border);margin:16px 0;}
 .role-gate{padding:60px 20px;text-align:center;color:var(--slate-500);}
 @media (max-width:1100px){.grid-cards{grid-template-columns:repeat(3,1fr);}.charts-row{grid-template-columns:1fr;}.two-col{grid-template-columns:1fr;}}
+
+/* ---------- Responsive móvil ---------- */
+#hamburgerBtn{display:none;background:none;border:none;padding:6px;border-radius:8px;color:var(--ink);}
+#hamburgerBtn:hover{background:#f1f2f6;}
+#sidebarOverlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:59;}
+#sidebarOverlay.open{display:block;}
+@media (max-width:880px){
+  .shell{position:relative;}
+  .sidebar{
+    position:fixed;top:0;left:0;bottom:0;z-index:60;
+    transform:translateX(-100%);transition:transform .25s ease;
+    box-shadow:20px 0 60px rgba(0,0,0,.3);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .main{width:100%;}
+  #hamburgerBtn{display:flex;align-items:center;justify-content:center;}
+  .topbar{padding:12px 14px;gap:10px;}
+  .topbar h2{font-size:16.5px;}
+  .topbar .sub{display:none;}
+  .company-switch{padding:6px 9px;font-size:12px;}
+  .company-switch select{max-width:110px;}
+  .view{padding:14px 14px 50px;}
+  .grid-cards{grid-template-columns:repeat(2,1fr) !important;}
+  .charts-row{grid-template-columns:1fr !important;}
+  .two-col{grid-template-columns:1fr !important;}
+  .stat-card .val{font-size:20px;}
+  .modal{width:94vw;max-height:92vh;}
+  .form-row{grid-template-columns:1fr;}
+  .chat-panel{right:10px;left:10px;width:auto;bottom:80px;}
+  .chat-fab{right:16px;bottom:16px;}
+  .cal-wrap{overflow-x:auto;}
+  table{font-size:12px;}
+  .login-card{padding:28px 22px;}
+  #pricingGrid{grid-template-columns:1fr 1fr !important;}
+  .filter-bar{flex-wrap:wrap;}
+}
+@media (max-width:520px){
+  .grid-cards{grid-template-columns:1fr !important;}
+  #pricingGrid{grid-template-columns:1fr !important;}
+}
 </style>
 </head>
 <body>
@@ -438,15 +483,21 @@ tr:last-child td{border-bottom:none;}
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div>
-        <h2 id="topTitle">Dashboard</h2>
-        <div class="sub" id="topSub">Vista general del día de hoy</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button id="hamburgerBtn" onclick="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <div>
+          <h2 id="topTitle">Dashboard</h2>
+          <div class="sub" id="topSub">Vista general del día de hoy</div>
+        </div>
       </div>
       <div class="company-switch" id="companySwitchWrap" style="display:none;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/></svg>
         <select id="companySwitch" onchange="switchCompany(this.value)"></select>
       </div>
     </div>
+    <div id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
     <!-- DASHBOARD -->
     <div class="view" id="view-dashboard">
@@ -844,7 +895,35 @@ const api = {
     portal:()=>apiFetch('/v1/billing/portal',{method:'POST'}),
     resumen:()=>apiFetch('/v1/billing/resumen'),
   },
+  push:{
+    vapidKey:()=>apiFetch('/v1/push/vapid-public-key'),
+    subscribe:(subscription)=>apiFetch('/v1/push/subscribe',{method:'POST',body:JSON.stringify({subscription})}),
+  },
 };
+
+/* ---------------------- NOTIFICACIONES PUSH (avisan al técnico de su siguiente trabajo) ---------------------- */
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+async function setupPushNotifications(){
+  try{
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)) return; // no soportado en este navegador
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    let permission = Notification.permission;
+    if(permission==='default') permission = await Notification.requestPermission();
+    if(permission!=='granted') return;
+    const {publicKey} = await api.push.vapidKey();
+    if(!publicKey) return; // el servidor aún no tiene las claves VAPID configuradas
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+    }
+    await api.push.subscribe(sub.toJSON());
+  }catch(e){ console.warn('No se pudieron activar las notificaciones push:', e); }
+}
 
 /* ---------------------- CONEXIÓN AL SERVIDOR ---------------------- */
 function normalizeUrl(u){ return u.trim().replace(/\/+$/,''); }
@@ -1074,6 +1153,7 @@ function initAppUI(){
 
   go(currentUser.role==='tecnico' ? 'tecnico' : 'dashboard');
   initChatSuggestions();
+  if(currentUser.role==='tecnico') setupPushNotifications();
   renderAll();
 }
 
@@ -1084,6 +1164,10 @@ async function switchCompany(id){
   document.getElementById('sbUserRole').textContent = 'Administrador · ' + co().name;
 }
 
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
 function go(view){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -1092,6 +1176,10 @@ function go(view){
   document.getElementById('topTitle').textContent=meta[0];
   document.getElementById('topSub').textContent=meta[1];
   renderView(view);
+  if(window.innerWidth<=880){
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  }
 }
 function renderView(view){
   if(view==='dashboard') renderDashboard();
