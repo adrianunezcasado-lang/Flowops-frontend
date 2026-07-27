@@ -1032,15 +1032,19 @@ async function afterLogin(){
     await fetchCompanyData();
     initAppUI();
   }catch(e){
-    toast(e.message||'No se pudieron cargar los datos','warn');
+    doLogout();
+    toast('No se pudo cargar tu cuenta: '+(e.message||'error desconocido'),'warn');
+    throw e;
   }
 }
 async function fetchCompanyData(){
   const cid = STATE.currentCompanyId;
   if(!cid){ STATE.technicians=[]; STATE.jobs=[]; STATE.notifications=[]; STATE.budgets=[]; STATE.users=[]; return; }
   const qId = currentUser.role==='admin' ? cid : undefined;
+  const isTecnico = currentUser.role==='tecnico';
   const calls = [
-    api.techs.list(qId), api.jobs.list(qId), api.notifications.list(qId), api.budgets.list(qId)
+    api.techs.list(qId), api.jobs.list(qId), api.notifications.list(qId),
+    isTecnico ? Promise.resolve([]) : api.budgets.list(qId),
   ];
   if(currentUser.role==='admin' || currentUser.role==='gerente') calls.push(api.users.list(qId));
   const results = await Promise.all(calls);
